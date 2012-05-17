@@ -14,37 +14,56 @@
 
 class event {
 	public:
-		virtual tick_t getStartTicks() const = 0;
-		virtual tick_t getDurationTicks() const = 0;
-		virtual void setStartTicks(tick_t) = 0;
-		virtual void setDurationTicks(tick_t) = 0;
+		virtual ~event() = 0;
+		virtual bool isNote() const { return false };
+		virtual unsigned int getBytes(uint8_t *, unsigned int) const = 0;
+		virtual void getDescription(char *, unsigned int) const = 0;
+};
 
-		virtual bool isNote() const = 0;
-		virtual void getDescription(char * /*buffer*/, unsigned int /*length*/) const = 0;
+class note : public event {
+	public:
+		virtual ~note() = 0;
+		virtual bool isNote() const { return true };
+		virtual unsigned int getNoteOffBytes(uint8_t *, unsigned int) const;
+		virtual void getDescription(char *, unsigned int) const = 0;
 };
 
 class track {
 	public:
-		virtual event & events(unsigned int) = 0;
-		virtual const event & events(unsigned int) const = 0;
-		virtual const tracktempo & getTrackTempo() const = 0;
-		virtual void setTrackTempo(const tracktempo &) = 0;
-		virtual unsigned int eventCount() const = 0;
+		unsigned int addEvent(event *, tick_t start);
+		unsigned int addNote(note *, tick_t start, tick_t duration);
+		void delEvent(unsigned int);
+
+		unsigned int eventCount() const;
+		event & events(unsigned int);
+		const event & events(unsigned int) const;
+
+		tick_t getEventTicks(unsigned int) const;
+		double getEventSeconds(unsigned int) const;
+		tick_t getNoteDurationTicks(unsigned int) const;
+		double getNoteDurationSeconds(unsigned int) const;
+		
+		const tracktempo & getTrackTempo() const;
+		void setTrackTempo(const tracktempo &);
+	private:
+		void * a;
+		void * b;
 };
 
 class midi {
 	public:
-		midi(const char *);
-		~midi();
-		bool save(const char *);
+		unsigned addTrack(const track &);
+		void delTrack(unsigned int);
+
+		unsigned int trackCount() const;
 		track & tracks(unsigned int);
 		const track & tracks(unsigned int) const;
-		unsigned int trackCount() const;
+
+		void setTicksPerQuaterNote(tick_t);
+		tick_t getTicksPerQuaterNote();
 	private:
-		midi() {};
-		midi(const midi &) {};
-		void operator=(const midi &) {};
-		void * p;
+		uint16_t a;
+		void * b;
 };
 
 #endif
