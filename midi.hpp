@@ -10,12 +10,14 @@
 #ifndef MIDI_H
 #define MIDI_H
 
+#include <inttypes.h>
+
 #include "tracktempo.hpp"
 
 class event {
 	public:
 		virtual ~event() = 0;
-		virtual bool isNote() const { return false };
+		virtual bool isNote() const { return false; };
 		virtual unsigned int getBytes(uint8_t *, unsigned int) const = 0;
 		virtual void getDescription(char *, unsigned int) const = 0;
 };
@@ -23,7 +25,7 @@ class event {
 class note : public event {
 	public:
 		virtual ~note() = 0;
-		virtual bool isNote() const { return true };
+		virtual bool isNote() const { return true; };
 		virtual unsigned int getNoteOffBytes(uint8_t *, unsigned int) const;
 		virtual void getDescription(char *, unsigned int) const = 0;
 };
@@ -42,7 +44,9 @@ class track {
 		double getEventSeconds(unsigned int) const;
 		tick_t getNoteDurationTicks(unsigned int) const;
 		double getNoteDurationSeconds(unsigned int) const;
-		
+		void setEventTicks(unsigned int, tick_t);
+		void setNoteDurationTicks(unsigned int, tick_t);
+
 		const tracktempo & getTrackTempo() const;
 		void setTrackTempo(const tracktempo &);
 	private:
@@ -60,7 +64,7 @@ class midi {
 		const track & tracks(unsigned int) const;
 
 		void setTicksPerQuaterNote(tick_t);
-		tick_t getTicksPerQuaterNote();
+		tick_t getTicksPerQuaterNote() const;
 	private:
 		uint16_t a;
 		void * b;

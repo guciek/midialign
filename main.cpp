@@ -15,6 +15,8 @@ using namespace std;
 #include "dump_midi.hpp"
 #include "align_midi_events.hpp"
 #include "find_nice_tempo.hpp"
+#include "midi_file_read.hpp"
+#include "midi_file_write.hpp"
 
 void option_auto(midi & m) {
 	tracktempo t = find_nice_tempo(0, 0);
@@ -62,14 +64,15 @@ bool run(char ** params) {
 			#ifdef DEBUG
 				cerr << "# Saving output file '" << p << "'..." << endl;
 			#endif
-			m->save(p.c_str());
+			midi_file_write(*m, p.c_str());
 			saved = true;
 		} else {
 			#ifdef DEBUG
 				cerr << "# Reading file'" << p << "'..." << endl;
 			#endif
 			try {
-				m = new midi(p.c_str());
+				m = new midi();
+				midi_file_read(*m, p.c_str());
 			} catch(const char * e) {
 				cerr << "Could not open '" << p << "': " << e << endl;
 				return false;
