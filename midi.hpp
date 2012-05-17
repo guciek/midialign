@@ -32,6 +32,9 @@ class note : public event {
 
 class track {
 	public:
+		track();
+		~track();
+
 		unsigned int addEvent(event *, tick_t start);
 		unsigned int addNote(note *, tick_t start, tick_t duration);
 		void delEvent(unsigned int);
@@ -56,6 +59,9 @@ class track {
 
 class midi {
 	public:
+		midi();
+		~midi();
+
 		unsigned addTrack(const track &);
 		void delTrack(unsigned int);
 
