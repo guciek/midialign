@@ -1,0 +1,10 @@
+Pliki MIDI do testowania programu.
+
+notes4.mid
+	4 takty nut, proste wartości
+
+2tracks.mid
+	Dwie ścieżki, każda po 4 takty.
+
+tempochange.mid
+	Jedna ścieżka, 4 takty, zmiana tempa 120 -> 80 po drugim takcie.
