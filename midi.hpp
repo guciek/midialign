@@ -44,7 +44,9 @@ class track {
 		double getEventSeconds(unsigned int) const;
 		tick_t getNoteDurationTicks(unsigned int) const;
 		double getNoteDurationSeconds(unsigned int) const;
-		
+		void setEventTicks(unsigned int, tick_t);
+		void setNoteDurationTicks(unsigned int, tick_t);
+
 		const tracktempo & getTrackTempo() const;
 		void setTrackTempo(const tracktempo &);
 	private:
