@@ -181,4 +181,3 @@ bool tracktempo::operator==(const tracktempo& b) const
 	{ return ((ptracktempo *)p)->operator==( (*(ptracktempo *)b.p) ); }
 bool tracktempo::operator!=(const tracktempo& b) const
 	{ return ((ptracktempo *)p)->operator!=( (*(ptracktempo *)b.p) ); }
-	//~ { return ((ptracktempo *)p)->operator!=( (ptracktempo &)b.p ); }
