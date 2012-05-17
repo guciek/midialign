@@ -62,7 +62,7 @@ class midi {
 		const track & tracks(unsigned int) const;
 
 		void setTicksPerQuaterNote(tick_t);
-		tick_t getTicksPerQuaterNote();
+		tick_t getTicksPerQuaterNote() const;
 	private:
 		uint16_t a;
 		void * b;
