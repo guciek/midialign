@@ -33,14 +33,16 @@ class note : public event {
 class track {
 	public:
 		track();
+		track(const track &);
 		~track();
+		track & operator=(const track &);
 
 		unsigned int addEvent(event *, tick_t start);
 		unsigned int addNote(note *, tick_t start, tick_t duration);
 		void delEvent(unsigned int);
+		void replaceEvent(unsigned int, event *);
 
 		unsigned int eventCount() const;
-		event & events(unsigned int);
 		const event & events(unsigned int) const;
 
 		tick_t getEventTicks(unsigned int) const;
@@ -60,7 +62,9 @@ class track {
 class midi {
 	public:
 		midi();
+		midi(const midi &);
 		~midi();
+		midi & operator=(const midi &);
 
 		unsigned addTrack(const track &);
 		void delTrack(unsigned int);

@@ -42,37 +42,38 @@ bool run(char ** params) {
 			"\n";
 		return false;
 	}
-	midi * m = 0;
+	midi m;
+	bool read = false;
 	bool saved = false;
 	while (params[0]) {
 		string p = params[0];
 		if (p[0] == '-') {
 			if (p == "-auto") {
-				option_auto(*m);
+				option_auto(m);
 				saved = false;
 			} else if (p == "-bpm") {
 				params++;
 				if (!params[0])
 					throw "Option '-bpm' requires a parameter!";
-				option_bpm(*m, params[0]);
+				option_bpm(m, params[0]);
 				saved = false;
 			} else {
 				cerr << "Unknown option '" << p << "'!" << endl;
 				return false;
 			}
-		} else if (m) {
+		} else if (read) {
 			#ifdef DEBUG
 				cerr << "# Saving output file '" << p << "'..." << endl;
 			#endif
-			midi_file_write(*m, p.c_str());
+			midi_file_write(m, p.c_str());
 			saved = true;
 		} else {
 			#ifdef DEBUG
 				cerr << "# Reading file'" << p << "'..." << endl;
 			#endif
 			try {
-				m = new midi();
-				midi_file_read(*m, p.c_str());
+				midi_file_read(m, p.c_str());
+				read = true;
 			} catch(const char * e) {
 				cerr << "Could not open '" << p << "': " << e << endl;
 				return false;
@@ -80,8 +81,7 @@ bool run(char ** params) {
 		}
 		params++;
 	}
-	if (!saved) dump_midi_stderr(*m);
-	if (m) delete m;
+	if (!saved) dump_midi_stderr(m);
 	return true;
 }
 
