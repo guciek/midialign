@@ -110,6 +110,13 @@ void printUint32_t(uint32_t val, ostream& out) {
 	}
 }
 
+void printUint16_t(uint16_t val, ostream& out) {
+	for (int i = 8; i >= 0; i -= 8) {
+		out.put((char) ((val >> i) & 0x000000FF));
+		//out << (val & 0x000000FF);
+	}
+}
+
 
 class pevent : public event {
 	public:
@@ -204,7 +211,7 @@ class pevent : public event {
 		return true;*/
 	}
 
-	void getDescription(char * buffer, unsigned int length) const {
+	virtual void getDescription(char * buffer, unsigned int length) const {
 		stringstream ss(stringstream::in | stringstream::out);
 		ss.setf(ios::showbase);
 		ss << cmd2str[getCommand()];
@@ -257,6 +264,11 @@ class pevent : public event {
 	}
 
 	size_t getRawLen() const { return rawlen; }
+
+	virtual unsigned int getBytes(uint8_t * buf, unsigned int sz) const {
+		memcpy(buf, raw, min(sz, (unsigned) rawlen));
+		return min(sz, (unsigned) rawlen);
+	}
 
 	pevent& operator=(const pevent& rhs) {
 		if (this == &rhs) return *this;
@@ -560,6 +572,7 @@ class pmidi {
 	public:
 
 	pmidi(const char * fn) {
+		uint8_t header[14];
 		ifstream in(fn, ifstream::in);
 
 		in.read((char *) header, 14);
@@ -593,7 +606,7 @@ class pmidi {
 				do
 				{
 					double secPerTick = t[i].getTrackTempo().readTempoMark(tempoMark);
-					mergedTracktempo.addTempoMark(0, secPerTick);
+					mergedTracktempo.addTempoMark(tempoMark, secPerTick);
 					tempoMark = t[i].getTrackTempo().nextTempoMarkAfter(tempoMark);
 				} while (tempoMark != 0);
 			}
@@ -610,7 +623,7 @@ class pmidi {
 	bool save(const char * fn) {
 		ofstream out(fn, ios_base::out | ios_base::binary);
 		if (out.fail()) return false;
-		out.write((char *) header, 14);
+		printHeader(out);
 		int lengths[trackCount()];
 		for (unsigned i = 0; i < trackCount(); ++i)
 			lengths[i] = t[i].save(out);
@@ -638,13 +651,33 @@ class pmidi {
 	}
 
 	uint16_t getFileFormat() const {
-		return getUint16_t(header, 8);
+		if (trackCount() <= 1)
+			return 0;
+		uint16_t ff = 1;
+		for (unsigned i = 1; i < trackCount(); ++i) {
+			if (t[i].getTrackTempo() != t[0].getTrackTempo()) {
+				ff = 2;
+				break;
+			}
+		}
+		return ff;
 	}
 
 	private:
 
 	vector<ptrack> t;
-	uint8_t header[14];
+	void printHeader(ostream &out) {
+		out.write("MThd\0\0\0\6", 8);
+		if (trackCount() == 0)
+			throw "No tracks! Cannot save a file.";
+		else if (trackCount() == 1)
+			printUint16_t(1, out);
+		else {
+			printUint16_t(getFileFormat(), out);
+		}
+		printUint16_t(trackCount(), out);
+		printUint16_t(tpq, out);
+	}
 
 	/* Ticks per quarter note. */
 	uint16_t tpq;
