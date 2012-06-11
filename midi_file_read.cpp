@@ -118,13 +118,13 @@ void printUint16_t(uint16_t val, ostream& out) {
 }
 
 
-class pevent : public event {
+class legacy_pevent {
 	public:
 
-	pevent() : len(0), pairVelocity(0), raw(NULL), rawlen(0), home(NULL)  {}
-	pevent(tick_t start, track * home)
+	legacy_pevent() : len(0), pairVelocity(0), raw(NULL), rawlen(0), home(NULL)  {}
+	legacy_pevent(tick_t start, track * home)
 		: start(start), len(0), pairVelocity(0), raw(NULL), rawlen(0), home(home) {}
-	pevent(const pevent& o) {
+	legacy_pevent(const legacy_pevent& o) {
 		//cerr << "BBB" << endl;
 		start = o.start;
 		len = o.len;
@@ -143,7 +143,7 @@ class pevent : public event {
 			raw = NULL;
 	}
 
-	~pevent() {
+	virtual ~legacy_pevent() {
 		if (raw != NULL) delete [] raw;
 	}
 
@@ -195,7 +195,7 @@ class pevent : public event {
 	 * Particulary, if this and o are EVENT_NOTEs, tells if
 	 * they are the same pitch and on the same channel.
 	 **/
-	bool equalChannelAndPitch(pevent &o) {
+	bool equalChannelAndPitch(legacy_pevent &o) {
 		return (
 			((raw[0] & EVENT_CHANNEL_MASK) == (o.raw[0] & EVENT_CHANNEL_MASK)) &&
 			(raw[1] == o.raw[1])
@@ -235,7 +235,7 @@ class pevent : public event {
 		copy(begin, end, raw);
 	}
 
-	void assignNoteOff(const pevent &noteOn) {
+	void assignNoteOff(const legacy_pevent &noteOn) {
 		if (! noteOn.isNote())
 			throw "assignNoteOff: given event is not a NOTE_ON event.";
 		if (raw != NULL) delete [] raw;
@@ -270,7 +270,7 @@ class pevent : public event {
 		return min(sz, (unsigned) rawlen);
 	}
 
-	pevent& operator=(const pevent& rhs) {
+	legacy_pevent& operator=(const legacy_pevent& rhs) {
 		if (this == &rhs) return *this;
 		//cerr << "AAA" << endl;
 		start = rhs.start;
@@ -287,7 +287,7 @@ class pevent : public event {
 		return *this;
 	}
 
-	bool operator==(const pevent& o) const {
+	bool operator==(const legacy_pevent& o) const {
 		if (start != o.start) return false;
 		if (len != o.len) return false;
 		if (pairVelocity != o.pairVelocity) return false;
@@ -297,7 +297,7 @@ class pevent : public event {
 		return true;
 	}
 
-	friend ostream& operator<<(ostream&, const pevent&);
+	friend ostream& operator<<(ostream&, const legacy_pevent&);
 
 
 
@@ -320,12 +320,12 @@ class pevent : public event {
 	track * home;
 };
 
-ostream& operator<<(ostream& out, const pevent& ev) {
+ostream& operator<<(ostream& out, const legacy_pevent& ev) {
 	out.write((char *) ev.raw, ev.rawlen);
 	return out;
 }
 
-bool startCmp(pevent a, pevent b) {
+bool startCmp(legacy_pevent a, legacy_pevent b) {
 	// first things first
 	if (a.start != b.start) return a.start < b.start;
 	if (a.getCommand() == CMD_META_EVENT && a.getMetaCommand() == META_TRACK_END)
@@ -387,7 +387,7 @@ class ptrack : public track {
 				runningMode = 1;
 			}
 
-			pevent ev(globalTicks, this);
+			legacy_pevent ev(globalTicks, this);
 			bool skip = false;
 			ev.start = globalTicks;
 			switch (rawbuf[0] >> 4) {
@@ -480,11 +480,11 @@ class ptrack : public track {
 
 
 	int save(ostream &out) {
-		vector<pevent> saveEvents(eventsCol.begin(), eventsCol.end());
+		vector<legacy_pevent> saveEvents(eventsCol.begin(), eventsCol.end());
 
 		for (__typeof__(eventsCol.begin()) it = eventsCol.begin(); it != eventsCol.end(); it++) {
 			if (it->isNote()) {
-				pevent noteOff;
+				legacy_pevent noteOff;
 				noteOff.assignNoteOff(*it);
 				saveEvents.push_back(noteOff);
 			}
@@ -497,7 +497,7 @@ class ptrack : public track {
 			double secPerQuarter = secPerTick * ((double) tpq);
 			uint32_t msecPerQuarterInt= (uint32_t) floor((1000000 * secPerQuarter) + 0.5);
 
-			pevent tempoChange(tempoMark, this);
+			legacy_pevent tempoChange(tempoMark, this);
 			tempoChange.assignTempoMark(msecPerQuarterInt);
 			saveEvents.push_back(tempoChange);
 
@@ -538,11 +538,11 @@ class ptrack : public track {
 		return totalLen;
 	}
 
-	virtual event & events(unsigned int i) {
+	virtual legacy_pevent & events(unsigned int i) {
 		return eventsCol[i];
 	}
 
-	virtual const event & events(unsigned int i) const {
+	virtual const legacy_pevent & events(unsigned int i) const {
 		return eventsCol[i];
 	}
 
@@ -562,7 +562,7 @@ class ptrack : public track {
 
 	private:
 
-	vector<pevent> eventsCol;
+	vector<legacy_pevent> eventsCol;
 	tracktempo thisTracktempo;
 	uint16_t tpq;
 
@@ -638,11 +638,11 @@ class pmidi {
 		return out.fail();
 	}
 
-	track & tracks(unsigned int i) {
+	ptrack & tracks(unsigned int i) {
 		return t[i];
 	}
 
-	const track & tracks(unsigned int i) const {
+	const ptrack & tracks(unsigned int i) const {
 		return t[i];
 	}
 
@@ -663,6 +663,9 @@ class pmidi {
 		return ff;
 	}
 
+	/* Ticks per quarter note. */
+	uint16_t tpq;
+
 	private:
 
 	vector<ptrack> t;
@@ -679,12 +682,126 @@ class pmidi {
 		printUint16_t(tpq, out);
 	}
 
-	/* Ticks per quarter note. */
-	uint16_t tpq;
+};
+
+class common_pevent : public event {
+	public:
+	common_pevent() : raw(NULL) {};
+	~common_pevent() { if (raw != NULL) delete [] raw; }
+	void setBytes(uint8_t * data, int datalen) {
+		if (raw != NULL) delete [] raw;
+		raw = new uint8_t[datalen];
+		copy(data, data + datalen, raw);
+		rawlen = datalen;
+	}
+	/*virtual event& operator=(const event& o) {
+		if (this == &o) return *this;
+		uint8_t buf[260];
+		int buflen = o.getBytes(buf, 260);
+		setBytes(buf, buflen);
+		puts("common_pevent::operator= called");
+		return *this;
+	}*/
+	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length) const {
+		return copy(raw, raw + min(length, (unsigned) rawlen), buffer) - buffer;
+	}
+	protected:
+	uint8_t * raw;
+	int rawlen;
+
+	uint8_t getCommand() const {
+		return (raw[0] >> 4);
+	}
+
+	uint8_t getMetaCommand() const {
+		if (getCommand() != CMD_META_EVENT)
+			throw "getMetaCommand: Not a meta command!";
+		return raw[1];
+	}
+};
+
+class pevent : public common_pevent {
+	public:
+	pevent() {}
+	pevent(const pevent& o) {
+		setBytes(o.raw, o.rawlen);
+	}
+//	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length);
+	virtual void getDescription(char * buffer, unsigned int length) const {
+		stringstream ss(stringstream::in | stringstream::out);
+		ss.setf(ios::showbase);
+		ss << cmd2str[getCommand()];
+		if (getCommand() == CMD_META_EVENT) {
+			ss << ", meta command: " << hex << (int) raw[1];
+			if (getMetaCommand() == META_TEMPO_CHANGE) {
+				ss << ", META_TEMPO_CHANGE";
+			}
+		}
+		ss.getline(buffer, length);
+	}
+};
+
+class pnote : public common_pevent {
+	public:
+	pnote() : noteoff_raw(NULL) {}
+	pnote(const pnote& o) {
+		setBytes(o.raw, o.rawlen);
+		setNoteOffBytes(o.noteoff_raw, o.noteoff_rawlen);
+	}
+	virtual unsigned int getNoteOffBytes(uint8_t * buffer, unsigned int length) {
+		return copy(noteoff_raw, noteoff_raw +
+			min(length, (unsigned) noteoff_rawlen),buffer) - buffer;
+	}
+	void setNoteOffBytes(uint8_t * data, int datalen) {
+		if (noteoff_raw != NULL) delete [] noteoff_raw;
+		noteoff_raw = new uint8_t[datalen];
+		copy(data, data + datalen, noteoff_raw);
+		noteoff_rawlen = datalen;
+	}
+	virtual void getDescription(char * buffer, unsigned int length) const {
+		stringstream ss(stringstream::in | stringstream::out);
+		ss.setf(ios::showbase);
+		ss << cmd2str[getCommand()];
+		ss << ", pitch: " << hex << (int) raw[1];
+		ss.getline(buffer, length);
+	}
+	protected:
+	uint8_t * noteoff_raw;
+	int noteoff_rawlen;
 };
 
 
 void midi_file_read(midi & m, const char * fn) {
 	while (m.trackCount() > 0) m.delTrack(0);
-	m.setTicksPerQuaterNote(100);
+	pmidi mymidi(fn);
+	m.setTicksPerQuaterNote(mymidi.tpq);
+	for (unsigned i = 0; i < mymidi.trackCount(); ++i) {
+		ptrack& currTrack = mymidi.tracks(i);
+		track newTrack;
+		newTrack.setTrackTempo(currTrack.getTrackTempo());
+		for (unsigned j = 0; j < currTrack.eventCount(); ++j) {
+			uint8_t buf[260];
+			const legacy_pevent& srcEvent = currTrack.events(j);
+			int buflen = srcEvent.getBytes(buf, 260);
+			if (srcEvent.isNote()) {
+				pnote * tmpNote = new pnote;
+				tmpNote->setBytes(buf, buflen);
+				// create temporary note-off event
+				legacy_pevent noteOff;
+				noteOff.assignNoteOff(srcEvent);
+				// dump its bytes
+				buflen = noteOff.getBytes(buf, 260);
+				// and assign them to the new note event
+				tmpNote->setNoteOffBytes(buf, buflen);
+
+				newTrack.addNote((note*) tmpNote, srcEvent.getStartTicks(), srcEvent.getDurationTicks());
+			} else {
+				pevent * tmpEvent = new pevent;
+				tmpEvent->setBytes(buf, buflen);
+
+				newTrack.addEvent((event*) tmpEvent, srcEvent.getStartTicks());
+			}
+		}
+		m.addTrack(newTrack);
+	}
 }

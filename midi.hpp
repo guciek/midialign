@@ -11,12 +11,13 @@
 #define MIDI_H
 
 #include <inttypes.h>
+#include <iostream>
 
 #include "tracktempo.hpp"
 
 class event {
 	public:
-		virtual ~event() = 0;
+		virtual ~event() {};
 		virtual bool isNote() const { return false; };
 		virtual unsigned int getBytes(uint8_t *, unsigned int) const = 0;
 		virtual void getDescription(char *, unsigned int) const = 0;
@@ -24,9 +25,9 @@ class event {
 
 class note : public event {
 	public:
-		virtual ~note() = 0;
+		virtual ~note() {};
 		virtual bool isNote() const { return true; };
-		virtual unsigned int getNoteOffBytes(uint8_t *, unsigned int) const;
+		virtual unsigned int getNoteOffBytes(uint8_t *, unsigned int) const = 0;
 		virtual void getDescription(char *, unsigned int) const = 0;
 };
 
