@@ -110,12 +110,40 @@ class ptracktempo {
 			//~ printf("#ptracktempo::operator== tempoList.size(): %d\n", (int)b.tempoList.size());
 			//~ printf("
 		#endif
+		__typeof__(tempoList.begin()) ita = tempoList.begin();
+		__typeof__(b.tempoList.begin()) itb = b.tempoList.begin();
+		double da=0.0, db=0.0;
+		while (ita != this->tempoList.end() || itb != b.tempoList.end() ) {
+			if ( da!=db ) return 0;
+			if ( ita == this->tempoList.end() ) {
+				db = itb->second;
+				itb++;
+			}
+			else if ( itb == b.tempoList.end() ) {
+				da = ita->second;
+				ita++;
+			}
+			else if( ita->first > itb->first ) {
+				db = itb->second;
+				itb++;
+			}
+			else if( ita->first < itb->first ) {
+				da = ita->second;
+				ita++;
+			}
+			else {
+				da = ita->second;
+				ita++;
+				db = itb->second;
+				itb++;
+			}
+		}
+		if ( da!=db ) return 0;
 		return 1;
 	}
 
 	bool operator!=(const ptracktempo& b) const {
 		return ( !(*this==b));
-		return 1;
 	}
 
 	//~ TODO destructor if needed
@@ -152,4 +180,4 @@ double tracktempo::readTempoMark(tick_t tick) const
 bool tracktempo::operator==(const tracktempo& b) const
 	{ return ((ptracktempo *)p)->operator==( (*(ptracktempo *)b.p) ); }
 bool tracktempo::operator!=(const tracktempo& b) const
-	{ return ((ptracktempo *)p)->operator!=( (ptracktempo &)b.p ); }
+	{ return ((ptracktempo *)p)->operator!=( (*(ptracktempo *)b.p) ); }
