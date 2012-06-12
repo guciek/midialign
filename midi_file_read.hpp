@@ -10,6 +10,10 @@
 #define MIDI_FILE_READ_H
 
 #include "midi.hpp"
+#include "midi_file_common.hpp"
+
+extern const char * FILE_FORMAT[];
+extern const char * cmd2str[];
 
 void midi_file_read(midi &, const char *);
 

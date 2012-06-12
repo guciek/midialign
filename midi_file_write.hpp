@@ -10,7 +10,8 @@
 #define MIDI_FILE_WRITE_H
 
 #include "midi.hpp"
+#include "midi_file_common.hpp"
 
-void midi_file_write(const midi &, const char *);
+bool midi_file_write(const midi &, const char *);
 
 #endif

@@ -18,104 +18,9 @@
 #include <cassert>
 #include <cmath>
 
-#define EVENT_COMMAND_MASK         0xF0
-#define EVENT_CHANNEL_MASK         0xF
-
-#define FORMAT_SINGLE_TRACK        0
-#define FORMAT_MULT_TRACKS_SYNC    1
-#define FORMAT_MULT_TRACKS_ASYNC   2
-
-#define CMD_NOTE_OFF               0x8
-#define CMD_NOTE_ON                0x9
-#define CMD_KEY_AFTER_TOUCH        0xA
-#define CMD_CONTROL_CHANGE         0xB
-#define CMD_PROGRAM_CHANGE         0xC
-#define CMD_CHANNEL_AFTER_TOUCH    0xD
-#define CMD_PITCH_WHEEL_CHANGE     0xE
-#define CMD_META_EVENT             0xF
-
-#define META_TEMPO_CHANGE          0x51
-#define META_TRACK_END             0x2F
-
-const char * FILE_FORMAT[] = {
-	"single-track",
-	"multiple tracks, synchronous",
-	"multiple tracks, asynchronous"
-};
-
-const char * cmd2str[] = {
-	"0", "1", "2", "3", "4", "5", "6", "7",
-	"CMD_NOTE_OFF",
-	"CMD_NOTE_ON",
-	"CMD_KEY_AFTER_TOUCH",
-	"CMD_CONTROL_CHANGE",
-	"CMD_PROGRAM_CHANGE",
-	"CMD_CHANNEL_AFTER_TOUCH",
-	"CMD_PITCH_WHEEL_CHANGE",
-	"CMD_META_EVENT",
-};
-
 using namespace std;
 
 class pmidi; // announce
-
-inline uint16_t getUint16_t(const uint8_t * ptr, int offset) {
-	ptr += offset;
-	uint16_t v = *((uint16_t *) ptr);
-	return ((v << 8) | (v >> 8));
-}
-
-uint32_t getUint32_t(ifstream &in) {
-	uint32_t result = 0;
-	uint8_t tmp;
-	for (int i = 0; i < 4; ++i) {
-		in.read((char *) &tmp, 1);
-		result <<= 8;
-		result |= tmp;
-	}
-	return result;
-}
-
-uint32_t getUint24_t(ifstream &in) {
-	uint32_t result = 0;
-	uint8_t tmp;
-	for (int i = 0; i < 3; ++i) {
-		in.read((char *) &tmp, 1);
-		result <<= 8;
-		result |= tmp;
-	}
-	return result;
-}
-
-uint32_t getUint24_t(uint8_t * in) {
-	uint32_t result = 0;
-	for (int i = 0; i < 3; ++i) {
-		result <<= 8;
-		result |= in[i];
-	}
-	return result;
-}
-
-void setUint24_t(uint32_t val, uint8_t * out) {
-	for (int i = 2; i >= 0; --i) {
-		out[i] = (val & 0x000000FF);
-		val >>= 8;
-	}
-}
-
-void printUint32_t(uint32_t val, ostream& out) {
-	for (int i = 24; i >= 0; i -= 8) {
-		out.put((char) ((val >> i) & 0x000000FF));
-		//out << (val & 0x000000FF);
-	}
-}
-
-void printUint16_t(uint16_t val, ostream& out) {
-	for (int i = 8; i >= 0; i -= 8) {
-		out.put((char) ((val >> i) & 0x000000FF));
-		//out << (val & 0x000000FF);
-	}
-}
 
 
 class legacy_pevent {
@@ -599,7 +504,8 @@ class pmidi {
 		for (unsigned i = 0; i < tracksCount; ++i)
 			t[i].load(in, tpq);
 
-		if (getFileFormat() == 1) {
+		/* Check declared file format. If it is 1, the file is synchronous. */
+		if (getUint16_t(header, 8) == 1) {
 			tracktempo mergedTracktempo(0.0);
 			for (unsigned i = 0; i < tracksCount; ++i) {
 				tick_t tempoMark = 0;
@@ -682,95 +588,6 @@ class pmidi {
 		printUint16_t(tpq, out);
 	}
 
-};
-
-class common_pevent : public event {
-	public:
-	common_pevent() : raw(NULL) {};
-	~common_pevent() { if (raw != NULL) delete [] raw; }
-	void setBytes(uint8_t * data, int datalen) {
-		if (raw != NULL) delete [] raw;
-		raw = new uint8_t[datalen];
-		copy(data, data + datalen, raw);
-		rawlen = datalen;
-	}
-	/*virtual event& operator=(const event& o) {
-		if (this == &o) return *this;
-		uint8_t buf[260];
-		int buflen = o.getBytes(buf, 260);
-		setBytes(buf, buflen);
-		puts("common_pevent::operator= called");
-		return *this;
-	}*/
-	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length) const {
-		return copy(raw, raw + min(length, (unsigned) rawlen), buffer) - buffer;
-	}
-	protected:
-	uint8_t * raw;
-	int rawlen;
-
-	uint8_t getCommand() const {
-		return (raw[0] >> 4);
-	}
-
-	uint8_t getMetaCommand() const {
-		if (getCommand() != CMD_META_EVENT)
-			throw "getMetaCommand: Not a meta command!";
-		return raw[1];
-	}
-};
-
-class pevent : public common_pevent {
-	public:
-	pevent() {}
-	pevent(const pevent& o) {
-		setBytes(o.raw, o.rawlen);
-	}
-//	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length);
-	virtual void getDescription(char * buffer, unsigned int length) const {
-		stringstream ss(stringstream::in | stringstream::out);
-		ss.setf(ios::showbase);
-		ss << cmd2str[getCommand()];
-		if (getCommand() == CMD_META_EVENT) {
-			ss << ", meta command: " << hex << (int) raw[1];
-			if (getMetaCommand() == META_TEMPO_CHANGE) {
-				ss << ", META_TEMPO_CHANGE";
-			}
-		}
-		ss.getline(buffer, length);
-	}
-};
-
-class pnote : public common_pevent, public note {
-	public:
-	pnote() : noteoff_raw(NULL) {}
-	pnote(const pnote& o) {
-		setBytes(o.raw, o.rawlen);
-		setNoteOffBytes(o.noteoff_raw, o.noteoff_rawlen);
-	}
-	virtual unsigned int getBytes(uint8_t * buf, unsigned int len) const {
-		return common_pevent::getBytes(buf, len);
-	}
-	virtual unsigned int getNoteOffBytes(uint8_t * buffer, unsigned int length) const {
-		return copy(noteoff_raw, noteoff_raw +
-			min(length, (unsigned) noteoff_rawlen),buffer) - buffer;
-	}
-	void setNoteOffBytes(uint8_t * data, int datalen) {
-		if (noteoff_raw != NULL) delete [] noteoff_raw;
-		noteoff_raw = new uint8_t[datalen];
-		copy(data, data + datalen, noteoff_raw);
-		noteoff_rawlen = datalen;
-	}
-	virtual void getDescription(char * buffer, unsigned int length) const {
-		stringstream ss(stringstream::in | stringstream::out);
-		ss.setf(ios::showbase);
-		ss << cmd2str[getCommand()];
-		ss << ", pitch: " << hex << (int) raw[1];
-		ss.getline(buffer, length);
-	}
-	protected:
-	uint8_t * noteoff_raw;
-	int noteoff_rawlen;
 };
 
 
