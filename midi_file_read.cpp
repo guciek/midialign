@@ -741,14 +741,17 @@ class pevent : public common_pevent {
 	}
 };
 
-class pnote : public common_pevent {
+class pnote : public common_pevent, public note {
 	public:
 	pnote() : noteoff_raw(NULL) {}
 	pnote(const pnote& o) {
 		setBytes(o.raw, o.rawlen);
 		setNoteOffBytes(o.noteoff_raw, o.noteoff_rawlen);
 	}
-	virtual unsigned int getNoteOffBytes(uint8_t * buffer, unsigned int length) {
+	virtual unsigned int getBytes(uint8_t * buf, unsigned int len) const {
+		return common_pevent::getBytes(buf, len);
+	}
+	virtual unsigned int getNoteOffBytes(uint8_t * buffer, unsigned int length) const {
 		return copy(noteoff_raw, noteoff_raw +
 			min(length, (unsigned) noteoff_rawlen),buffer) - buffer;
 	}
