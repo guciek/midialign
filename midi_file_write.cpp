@@ -122,7 +122,7 @@ int writeTrack(const track& t, ostream& out, uint16_t tpq = 0, bool writeTempo =
 		{
 			double secPerTick = thisTrackTempo.readTempoMark(tempoMark);
 			double secPerQuarter = secPerTick * ((double) tpq);
-			uint32_t msecPerQuarterInt= (uint32_t) floor((1000000 * secPerQuarter) + 0.5);
+			uint32_t msecPerQuarterInt= (uint32_t) floor((1000000.0 * secPerQuarter) + 0.5);
 
 			pevent * tempoChange = new pevent;
 			assignTempoMark(msecPerQuarterInt, *tempoChange);

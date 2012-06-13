@@ -243,7 +243,7 @@ bool startCmp(legacy_pevent a, legacy_pevent b) {
 class ptrack : public track {
 	public :
 
-	ptrack() : thisTracktempo(tracktempo(0.0)) {}
+	ptrack() : thisTracktempo(tracktempo(0.0)), p_hasTempoMarkAt0(false) {}
 
 	void load(ifstream &in, uint16_t tpq) {
 		this->tpq = tpq;
@@ -336,7 +336,10 @@ class ptrack : public track {
 					if (rawbuf[1] == META_TEMPO_CHANGE) {
 						// Handle tempo change.
 						uint32_t mspq = getUint24_t(rawbuf + 3); // microsec per quarter note
-						thisTracktempo.addTempoMark(ev.start, ((double) mspq) / ((double) tpq));
+						if (ev.start == 0) {
+							p_hasTempoMarkAt0 = true;
+						}
+						thisTracktempo.addTempoMark(ev.start, ((double) mspq) / ((double) tpq) * 0.000001);
 					}
 					remaining -= rawbuf[2];
 					ev.setRaw(rawbuf, rawbuf + 3 + rawbuf[2]);
@@ -460,6 +463,10 @@ class ptrack : public track {
 	virtual unsigned int eventCount() const {
 		return eventsCol.size();
 	}
+	
+	bool hasTempoMarkAt0() const {
+		return p_hasTempoMarkAt0;
+	}
 
 	friend class pmidi;
 
@@ -468,6 +475,7 @@ class ptrack : public track {
 	vector<legacy_pevent> eventsCol;
 	tracktempo thisTracktempo;
 	uint16_t tpq;
+	bool p_hasTempoMarkAt0;
 
 };
 
@@ -510,7 +518,8 @@ class pmidi {
 				do
 				{
 					double secPerTick = t[i].getTrackTempo().readTempoMark(tempoMark);
-					mergedTracktempo.addTempoMark(tempoMark, secPerTick);
+					if (t[i].hasTempoMarkAt0() || (tempoMark != 0))
+						mergedTracktempo.addTempoMark(tempoMark, secPerTick);
 					tempoMark = t[i].getTrackTempo().nextTempoMarkAfter(tempoMark);
 				} while (tempoMark != 0);
 			}
