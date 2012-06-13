@@ -120,6 +120,11 @@ uint8_t common_pevent::getMetaCommand() const {
 	return raw[1];
 }
 
+bool common_pevent::isNote() const {
+	if (rawlen == 0) return false;
+	return getCommand() == CMD_NOTE_ON;
+}
+
 
 // ============ pevent ============= //
 

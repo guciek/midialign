@@ -270,12 +270,10 @@ class ptrack : public track {
 				--remaining;
 			} while ((deltav.back() & (1u << 7)) != 0);
 			tick_t deltaTicks = 0;
-			for (unsigned i = 0; i < deltav.size() - 1; ++i) {
+			for (unsigned i = 0; i < deltav.size(); ++i) {
 				deltaTicks <<= 7;
 				deltaTicks |= (deltav[i] & 0x7F);
 			}
-			deltaTicks <<= 8;
-			deltaTicks |= deltav.back();
 			globalTicks += deltaTicks;
 
 			/* Read event description: command and data. */

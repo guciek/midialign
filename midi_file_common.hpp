@@ -71,6 +71,7 @@ class common_pevent : public event {
 		return *this;
 	}*/
 	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length) const;
+	virtual bool isNote() const;
 	protected:
 	uint8_t * raw;
 	int rawlen;
