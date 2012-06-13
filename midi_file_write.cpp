@@ -78,6 +78,23 @@ int serializeEvent(const event& e, ostream& out) {
 	out.write((char *) buf, buflen);
 	return buflen;
 }
+int printVLE(tick_t value, ostream& out) {
+	if (value == 0) {
+		out.put('\0');
+		return 1;
+	}
+	vector<uint8_t> deltav;
+	while (value > 0) {
+		deltav.push_back(value & 0x7F);
+		value >>= 7;
+	}
+	reverse(deltav.begin(), deltav.end());
+	for (int i = 0; i < ((int) deltav.size()) - 1; ++i)
+		deltav[i] = (deltav[i] | 0x80);
+	for (unsigned i = 0; i < deltav.size(); ++i)
+		out.put((char) deltav[i]);
+	return deltav.size();
+}
 
 int writeTrack(const track& t, ostream& out, uint16_t tpq = 0, bool writeTempo = false) {
 	const tracktempo& thisTrackTempo = t.getTrackTempo();
@@ -90,10 +107,10 @@ int writeTrack(const track& t, ostream& out, uint16_t tpq = 0, bool writeTempo =
 		buflen = t.events(i).getBytes(buf, 260);
 		e->setBytes(buf, buflen);
 		saveEvents.push_back(start_event(shared_ptr<event>(e), t.getEventTicks(i)));
-		if (e->isNote()) {
+		if (t.events(i).isNote()) {
 			pevent * eOff = new pevent;
-			buflen = dynamic_cast<pnote*>(e)->getNoteOffBytes(buf, 260);
-			eOff->getBytes(buf, buflen);
+			buflen = dynamic_cast<const pnote&>(t.events(i)).getNoteOffBytes(buf, 260);
+			eOff->setBytes(buf, buflen);
 			saveEvents.push_back(start_event(
 				shared_ptr<event>(eOff), t.getEventTicks(i) + t.getNoteDurationTicks(i)));
 		}
@@ -125,25 +142,9 @@ int writeTrack(const track& t, ostream& out, uint16_t tpq = 0, bool writeTempo =
 	for (__typeof__(saveEvents.begin()) it = saveEvents.begin(),
 						prev = saveEvents.begin(); it != saveEvents.end(); it++) {
 		tick_t delta_tick = it->start - prev->start;
-		uint32_t delta = (uint32_t) delta_tick;
-		vector<uint8_t> deltav;
-		do
-		{
-			if (delta >= 0x80) {
-				int msb = 31 - __builtin_clz(delta);
-				deltav.push_back((delta >> (msb - 7)) | 0x80);
-				delta = (delta & ((1 << (msb - 7 + 1)) - 1));
-			}
-			else {
-				deltav.push_back(delta);
-				delta = 0;
-			}
-		} while (delta != 0);
-		for (unsigned i = 0; i < deltav.size(); ++i)
-			out.put((char) deltav[i]);
-
-		totalLen += deltav.size();
+		totalLen += printVLE(delta_tick, out);
 		totalLen += serializeEvent(*(it->e), out);
+		prev = it;
 	}
 
 	return totalLen;
