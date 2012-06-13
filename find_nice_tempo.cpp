@@ -62,7 +62,7 @@ double maxoccur(vector<double> & v) {
 		#endif
 		if (afterdist-i > max_occur) {
 			max_occur = afterdist-i;
-			max_val = v[i];
+			max_val = v[((afterdist+i)/2) % v.size()];
 		}
 	}
 	return max_val;
