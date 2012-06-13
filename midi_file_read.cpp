@@ -255,7 +255,10 @@ class ptrack : public track {
 		if (strncmp(sig, "MTrk", 4) != 0)
 			throw "Not a valid MIDI track: \"MTrk\" signature not found.";
 		eventsCol.clear();
-		uint32_t remaining = getUint32_t(in);
+		long long remaining = getUint32_t(in);
+#ifdef DEBUG
+		cerr << "# Remaining bytes: " << remaining << endl;
+#endif
 		tick_t globalTicks = 0;
 		uint8_t rawbuf[260];
 		rawbuf[0] = 0xFF;
@@ -266,7 +269,7 @@ class ptrack : public track {
 			vector<uint8_t> deltav;
 			do
 			{
-				in >> x;
+				in.read((char*) &x, 1);
 				deltav.push_back(x);
 				--remaining;
 			} while ((deltav.back() & (1u << 7)) != 0);
@@ -353,12 +356,12 @@ class ptrack : public track {
 					break;
 			}
 #ifdef DEBUG
-			/*if (! skip) {
+			if (! skip) {
 				char buf[256];
 				ev.getDescription(buf, 256);
 				cerr << "# " << buf << endl;
 				cerr << "remaining bytes: " << remaining << endl;
-			}*/
+			}
 #endif
 			if (! skip) {
 				if (ev.getCommand() != CMD_NOTE_OFF)
