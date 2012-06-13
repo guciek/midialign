@@ -7,6 +7,7 @@
 **************************************************************************/
 
 #include "midi_file_read.hpp"
+#include "stream_utils.hpp"
 
 #include <vector>
 #include <fstream>
@@ -334,7 +335,7 @@ class ptrack : public track {
 					remaining -= 2 - runningMode;
 					in.read((char *) rawbuf + 3, rawbuf[2]);
 					if (rawbuf[1] == META_TEMPO_CHANGE) {
-						// Handle tempo change.
+						// Handle tempo change.	
 						uint32_t mspq = getUint24_t(rawbuf + 3); // microsec per quarter note
 						if (ev.start == 0) {
 							p_hasTempoMarkAt0 = true;

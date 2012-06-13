@@ -7,11 +7,13 @@
 **************************************************************************/
 
 #include "midi_file_write.hpp"
+#include "stream_utils.hpp"
 
 #include <vector>
 #include <cmath>
 #include <tr1/memory>
 #include <algorithm>
+#include <fstream>
 
 extern const char * FILE_FORMAT[];
 extern const char * cmd2str[];
@@ -106,7 +108,8 @@ int writeTrack(const track& t, ostream& out, uint16_t tpq = 0, bool writeTempo =
 		pevent * e = new pevent;
 		buflen = t.events(i).getBytes(buf, 260);
 		e->setBytes(buf, buflen);
-		saveEvents.push_back(start_event(shared_ptr<event>(e), t.getEventTicks(i)));
+		if (! (e->getCommand() == CMD_META_EVENT && e->getMetaCommand() == META_TRACK_END))
+			saveEvents.push_back(start_event(shared_ptr<event>(e), t.getEventTicks(i)));
 		if (t.events(i).isNote()) {
 			pevent * eOff = new pevent;
 			buflen = dynamic_cast<const pnote&>(t.events(i)).getNoteOffBytes(buf, 260);
@@ -133,6 +136,7 @@ int writeTrack(const track& t, ostream& out, uint16_t tpq = 0, bool writeTempo =
 	}
 
 	stable_sort(saveEvents.begin(), saveEvents.end(), startCmp);
+	
 
 	uint32_t totalLen = 4;
 	out.write("MTrk", 4);
@@ -146,6 +150,9 @@ int writeTrack(const track& t, ostream& out, uint16_t tpq = 0, bool writeTempo =
 		totalLen += serializeEvent(*(it->e), out);
 		prev = it;
 	}
+
+	out.write("\x00\xFF\x2F\x00", 4);
+	totalLen += 4;
 
 	return totalLen;
 }

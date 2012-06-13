@@ -11,7 +11,6 @@
 #define MIDI_H
 
 #include <inttypes.h>
-#include <iostream>
 
 #include "tracktempo.hpp"
 

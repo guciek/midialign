@@ -10,8 +10,6 @@
 #define MIDI_FILE_COMMON_H
 
 #include <inttypes.h>
-#include <fstream>
-#include <sstream>
 
 #include "midi.hpp"
 
@@ -40,50 +38,24 @@ using namespace std;
 extern const char * FILE_FORMAT[];
 extern const char * cmd2str[];
 
-
-/* Helper functions. */
-
-uint16_t getUint16_t(const uint8_t * ptr, int offset);
-
-uint32_t getUint32_t(std::ifstream &in);
-
-uint32_t getUint24_t(std::ifstream &in);
-
-uint32_t getUint24_t(uint8_t * in);
-
-void setUint24_t(uint32_t val, uint8_t * out);
-
-void printUint32_t(uint32_t val, std::ostream& out);
-
-void printUint16_t(uint16_t val, std::ostream& out);
-
 class common_pevent : public event {
 	public:
 	common_pevent();
 	~common_pevent();
 	void setBytes(uint8_t * data, int datalen);
-	/*virtual event& operator=(const event& o) {
-		if (this == &o) return *this;
-		uint8_t buf[260];
-		int buflen = o.getBytes(buf, 260);
-		setBytes(buf, buflen);
-		puts("common_pevent::operator= called");
-		return *this;
-	}*/
 	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length) const;
 	virtual bool isNote() const;
+	uint8_t getCommand() const;
+	uint8_t getMetaCommand() const;
 	protected:
 	uint8_t * raw;
 	int rawlen;
-	uint8_t getCommand() const;
-	uint8_t getMetaCommand() const;
 };
 
 class pevent : public common_pevent {
 	public:
 	pevent();
 	pevent(const pevent& o);
-//	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length);
 	virtual void getDescription(char * buffer, unsigned int length) const;
 };
 
