@@ -32,6 +32,23 @@ void option_constant(midi & m) {
 	align_midi_events(m, 8, tracktempo((60.0/(bpm*8))));
 }
 
+void option_shift_ticks(midi & m, const char * param1) {
+	int shift = atoi(param1);
+	if (shift == 0)
+		throw "Invalid parameter for '-shift-ticks'!";
+	#ifdef DEBUG
+		cerr << "# Shifting all events: " << shift << " ticks..." << endl;
+	#endif
+	for (unsigned int i = 0; i < m.trackCount(); i++) {
+		for (unsigned int j = 0; j < m.tracks(i).eventCount(); j++) {
+			long long t = m.tracks(i).getEventTicks(j);
+			t += shift;
+			if (t < 0) t = 0;
+			m.tracks(i).setEventTicks(j, t);
+		}
+	}
+}
+
 void option_bpm(midi & m, const char * param1) {
 	int bpm = atoi(param1);
 	int mult = 1;
@@ -74,6 +91,12 @@ bool run(char ** params) {
 				if (!params[0])
 					throw "Option '-bpm' requires a parameter!";
 				option_bpm(m, params[0]);
+				saved = false;
+			} else if (p == "-shift-ticks") {
+				params++;
+				if (!params[0])
+					throw "Option '-shift-ticks' requires a parameter!";
+				option_shift_ticks(m, params[0]);
 				saved = false;
 			} else {
 				cerr << "Unknown option '" << p << "'!" << endl;
