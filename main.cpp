@@ -25,14 +25,21 @@ void option_auto(midi & m) {
 
 void option_bpm(midi & m, const char * param1) {
 	int bpm = atoi(param1);
+	int mult = 1;
 	int x = string(param1).find('x');
-	if (x >= 0) bpm *= atoi(param1+x+1);
-	if ((bpm < 1) || (bpm > 1000000)) throw "Invalid parameter for '-bpm'!";
+	if (x >= 0) mult = atoi(param1+x+1);
+	if ((bpm*mult < 1) || (bpm*mult > 1000000))
+		throw "Invalid parameter for '-bpm'!";
 	#ifdef DEBUG
-		cerr << "# Aligning to a constant grid of " << bpm << " ticks/second..." << endl;
+		cerr << "# Aligning to a constant grid of "
+			<< bpm*mult << " ticks/second..." << endl;
 	#endif
-	tracktempo t(1.0/bpm);
-	align_midi_events(m, t);
+	align_midi_events(m, tracktempo(60.0/(bpm*mult)));
+	if (mult*bpm < 8*60) {
+		while (mult*bpm < 8*60) mult *= 2;
+		align_midi_events(m, tracktempo(60.0/(bpm*mult)));
+	}
+	m.setTicksPerQuaterNote(mult);
 }
 
 bool run(char ** params) {
