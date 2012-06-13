@@ -14,13 +14,14 @@ using namespace std;
 
 tick_t nearest_tick(const tracktempo & t, double s) {
 	tick_t b = 256;
-	while (t.getTickTime(b) < s) b <<= 4;
+	while (t.getTickTime(b) <= s) b <<= 4;
 	tick_t a = 0;
 	while (a+1 < b) {
 		tick_t m = (a+b) >> 1;
 		if (t.getTickTime(m) > s) b = m;
 		else a = m;
 	}
+	if (s >= (0.5*(t.getTickTime(b)+t.getTickTime(a)))) return b;
 	return a;
 }
 
