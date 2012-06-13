@@ -11,6 +11,7 @@
 
 #include "tracktempo.hpp"
 
-tracktempo find_nice_tempo(double * event_times, unsigned int event_count);
+double find_nice_constant_bpm(const double * event_times,
+		unsigned int event_count);
 
 #endif

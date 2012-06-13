@@ -37,7 +37,8 @@ void align_midi_event(track & t, unsigned int i, const tracktempo & newtempo) {
 	t.setEventTicks(i, start_ticks);
 }
 
-void align_midi_events(midi & m, const tracktempo & newtempo) {
+void align_midi_events(midi & m, tick_t tickPerQuarterNote,
+	const tracktempo & newtempo) {
 	for (unsigned int i = 0; i < m.trackCount(); i++) {
 		tracktempo oldtempo = m.tracks(i).getTrackTempo();
 		for (unsigned int j = 0; j < m.tracks(i).eventCount(); j++) {
@@ -45,4 +46,5 @@ void align_midi_events(midi & m, const tracktempo & newtempo) {
 		}
 		m.tracks(i).setTrackTempo(newtempo);
 	}
+	m.setTicksPerQuaterNote(tickPerQuarterNote);
 }
