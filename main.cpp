@@ -28,6 +28,9 @@ void option_bpm(midi & m, const char * param1) {
 	int x = string(param1).find('x');
 	if (x >= 0) bpm *= atoi(param1+x+1);
 	if ((bpm < 1) || (bpm > 1000000)) throw "Invalid parameter for '-bpm'!";
+	#ifdef DEBUG
+		cerr << "# Aligning to a constant grid of " << bpm << " ticks/second..." << endl;
+	#endif
 	tracktempo t(1.0/bpm);
 	align_midi_events(m, t);
 }

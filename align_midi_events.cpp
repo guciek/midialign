@@ -42,7 +42,7 @@ void align_midi_events(midi & m, const tracktempo & newtempo) {
 		tracktempo oldtempo = m.tracks(i).getTrackTempo();
 		for (unsigned int j = 0; j < m.tracks(i).eventCount(); j++) {
 			align_midi_event(m.tracks(i), j, newtempo);
-			m.tracks(i).setTrackTempo(newtempo);
 		}
+		m.tracks(i).setTrackTempo(newtempo);
 	}
 }
