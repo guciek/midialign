@@ -7,6 +7,8 @@
 **************************************************************************/
 
 #include "midi_file_read.hpp"
+#include "midi_file_common.hpp"
+#include "stream_utils.hpp"
 
 #include <vector>
 #include <fstream>
@@ -18,105 +20,26 @@
 #include <cassert>
 #include <cmath>
 
-#define EVENT_COMMAND_MASK         0xF0
-#define EVENT_CHANNEL_MASK         0xF
+using namespace std;
+
+#define DEFAULT_VELOCITY 64
 
 #define FORMAT_SINGLE_TRACK        0
 #define FORMAT_MULT_TRACKS_SYNC    1
 #define FORMAT_MULT_TRACKS_ASYNC   2
 
-#define CMD_NOTE_OFF               0x8
-#define CMD_NOTE_ON                0x9
-#define CMD_KEY_AFTER_TOUCH        0xA
-#define CMD_CONTROL_CHANGE         0xB
-#define CMD_PROGRAM_CHANGE         0xC
-#define CMD_CHANNEL_AFTER_TOUCH    0xD
-#define CMD_PITCH_WHEEL_CHANGE     0xE
-#define CMD_META_EVENT             0xF
+#define EVENT_COMMAND_MASK         0xF0
+#define EVENT_CHANNEL_MASK         0xF
 
-#define META_TEMPO_CHANGE          0x51
-#define META_TRACK_END             0x2F
+#ifdef DEBUG
+	const char * FILE_FORMAT[] = {
+		"single-track",
+		"multiple tracks, synchronous",
+		"multiple tracks, asynchronous"
+	};
+#endif
 
-const char * FILE_FORMAT[] = {
-	"single-track",
-	"multiple tracks, synchronous",
-	"multiple tracks, asynchronous"
-};
-
-const char * cmd2str[] = {
-	"0", "1", "2", "3", "4", "5", "6", "7",
-	"CMD_NOTE_OFF",
-	"CMD_NOTE_ON",
-	"CMD_KEY_AFTER_TOUCH",
-	"CMD_CONTROL_CHANGE",
-	"CMD_PROGRAM_CHANGE",
-	"CMD_CHANNEL_AFTER_TOUCH",
-	"CMD_PITCH_WHEEL_CHANGE",
-	"CMD_META_EVENT",
-};
-
-using namespace std;
-
-class pmidi; // announce
-
-inline uint16_t getUint16_t(const uint8_t * ptr, int offset) {
-	ptr += offset;
-	uint16_t v = *((uint16_t *) ptr);
-	return ((v << 8) | (v >> 8));
-}
-
-uint32_t getUint32_t(ifstream &in) {
-	uint32_t result = 0;
-	uint8_t tmp;
-	for (int i = 0; i < 4; ++i) {
-		in.read((char *) &tmp, 1);
-		result <<= 8;
-		result |= tmp;
-	}
-	return result;
-}
-
-uint32_t getUint24_t(ifstream &in) {
-	uint32_t result = 0;
-	uint8_t tmp;
-	for (int i = 0; i < 3; ++i) {
-		in.read((char *) &tmp, 1);
-		result <<= 8;
-		result |= tmp;
-	}
-	return result;
-}
-
-uint32_t getUint24_t(uint8_t * in) {
-	uint32_t result = 0;
-	for (int i = 0; i < 3; ++i) {
-		result <<= 8;
-		result |= in[i];
-	}
-	return result;
-}
-
-void setUint24_t(uint32_t val, uint8_t * out) {
-	for (int i = 2; i >= 0; --i) {
-		out[i] = (val & 0x000000FF);
-		val >>= 8;
-	}
-}
-
-void printUint32_t(uint32_t val, ostream& out) {
-	for (int i = 24; i >= 0; i -= 8) {
-		out.put((char) ((val >> i) & 0x000000FF));
-		//out << (val & 0x000000FF);
-	}
-}
-
-void printUint16_t(uint16_t val, ostream& out) {
-	for (int i = 8; i >= 0; i -= 8) {
-		out.put((char) ((val >> i) & 0x000000FF));
-		//out << (val & 0x000000FF);
-	}
-}
-
+class pmidi;
 
 class legacy_pevent {
 	public:
@@ -125,19 +48,16 @@ class legacy_pevent {
 	legacy_pevent(tick_t start, track * home)
 		: start(start), len(0), pairVelocity(0), raw(NULL), rawlen(0), home(home) {}
 	legacy_pevent(const legacy_pevent& o) {
-		//cerr << "BBB" << endl;
 		start = o.start;
 		len = o.len;
 		rawlen = o.rawlen;
 		pairVelocity = o.pairVelocity;
 		home = o.home;
 		if (o.rawlen > 0) {
-			//cerr << "CCC " << (int) o.raw[0] << endl;
 			raw = new uint8_t[rawlen];
 			memcpy(raw, o.raw, rawlen);
 			for (int i = 0; i < rawlen; ++i)
 				raw[i] = o.raw[i];
-			//copy(o.raw, o.raw + rawlen, raw);
 		}
 		else
 			raw = NULL;
@@ -189,32 +109,29 @@ class legacy_pevent {
 		return raw[1];
 	}
 
+	uint8_t getNoteVelocity() const {
+		if (getCommand() != CMD_NOTE_ON && getCommand() != CMD_NOTE_OFF)
+			throw "getNoteVelocity: velocity not defined for events of this type!";
+		return raw[2];
+	}
+
 	/**
 	 * Test if events are the same wrt. channel and first byte after
 	 * a command byte.
 	 * Particulary, if this and o are EVENT_NOTEs, tells if
 	 * they are the same pitch and on the same channel.
 	 **/
-	bool equalChannelAndPitch(legacy_pevent &o) {
+	bool equalChannelAndPitch(const legacy_pevent &o) {
 		return (
 			((raw[0] & EVENT_CHANNEL_MASK) == (o.raw[0] & EVENT_CHANNEL_MASK)) &&
 			(raw[1] == o.raw[1])
 			);
-		/*if (rawlen != o.rawlen)
-			return false;
-		if (rawlen > 0) {
-			if ((raw[0] & EVENT_CHANNEL_MASK) != (o.raw[0] & EVENT_CHANNEL_MASK))
-				return false;
-			if (strncmp((char *) raw + 1, (char *) o.raw + 1, rawlen - 1) != 0)
-				return false;
-		}
-		return true;*/
 	}
 
 	virtual void getDescription(char * buffer, unsigned int length) const {
 		stringstream ss(stringstream::in | stringstream::out);
 		ss.setf(ios::showbase);
-		ss << cmd2str[getCommand()];
+		ss << getCommandStr(getCommand());
 		if (isNote()) {
 			ss << ", pitch: " << hex << (int) raw[1];
 		}
@@ -272,7 +189,6 @@ class legacy_pevent {
 
 	legacy_pevent& operator=(const legacy_pevent& rhs) {
 		if (this == &rhs) return *this;
-		//cerr << "AAA" << endl;
 		start = rhs.start;
 		len = rhs.len;
 		rawlen = rhs.rawlen;
@@ -326,7 +242,6 @@ ostream& operator<<(ostream& out, const legacy_pevent& ev) {
 }
 
 bool startCmp(legacy_pevent a, legacy_pevent b) {
-	// first things first
 	if (a.start != b.start) return a.start < b.start;
 	if (a.getCommand() == CMD_META_EVENT && a.getMetaCommand() == META_TRACK_END)
 		return false;
@@ -338,7 +253,7 @@ bool startCmp(legacy_pevent a, legacy_pevent b) {
 class ptrack : public track {
 	public :
 
-	ptrack() : thisTracktempo(tracktempo(0.0)) {}
+	ptrack() : thisTracktempo(tracktempo(0.0)), p_hasTempoMarkAt0(false) {}
 
 	void load(ifstream &in, uint16_t tpq) {
 		this->tpq = tpq;
@@ -349,7 +264,10 @@ class ptrack : public track {
 		if (strncmp(sig, "MTrk", 4) != 0)
 			throw "Not a valid MIDI track: \"MTrk\" signature not found.";
 		eventsCol.clear();
-		uint32_t remaining = getUint32_t(in);
+		long long remaining = getUint32_t(in);
+#ifdef DEBUG
+		cerr << "# Remaining bytes: " << remaining << endl;
+#endif
 		tick_t globalTicks = 0;
 		uint8_t rawbuf[260];
 		rawbuf[0] = 0xFF;
@@ -360,17 +278,15 @@ class ptrack : public track {
 			vector<uint8_t> deltav;
 			do
 			{
-				in >> x;
+				in.read((char*) &x, 1);
 				deltav.push_back(x);
 				--remaining;
 			} while ((deltav.back() & (1u << 7)) != 0);
 			tick_t deltaTicks = 0;
-			for (unsigned i = 0; i < deltav.size() - 1; ++i) {
+			for (unsigned i = 0; i < deltav.size(); ++i) {
 				deltaTicks <<= 7;
 				deltaTicks |= (deltav[i] & 0x7F);
 			}
-			deltaTicks <<= 8;
-			deltaTicks |= deltav.back();
 			globalTicks += deltaTicks;
 
 			/* Read event description: command and data. */
@@ -380,8 +296,6 @@ class ptrack : public track {
 			--remaining;
 			// Check if we have a running event.
 			if ((rawbuf[0] & 0x80) == (uint8_t) 0) {
-				//rawbuf[0] = (rawbuf[0] & 0xF);
-				//rawbuf[0] = (rawbuf[0] | (previousCommand & 0xF0));
 				rawbuf[1] = rawbuf[0]; // pass this byte as command's argument
 				rawbuf[0] = previousCommand; // treat this command the same as previous one
 				runningMode = 1;
@@ -395,11 +309,9 @@ class ptrack : public track {
 					in.read((char *) rawbuf + 1 + runningMode, 2 - runningMode);
 					ev.setRaw(rawbuf, rawbuf + 3);
 					remaining -= 2 - runningMode;
-					
+
 					{
-						__typeof__(eventsCol.rbegin()) noteOn = eventsCol.rbegin();
-						for (; noteOn != eventsCol.rend(); noteOn++)
-							if (noteOn->isNote() && noteOn->equalChannelAndPitch(ev)) break;
+						__typeof__(eventsCol.rbegin()) noteOn = findCorrespondingNoteOn(ev);
 						if (noteOn == eventsCol.rend())
 							cerr << "Warning: NOTE_OFF event without corresponding NOTE_ON." << endl;
 						else {
@@ -433,7 +345,10 @@ class ptrack : public track {
 					if (rawbuf[1] == META_TEMPO_CHANGE) {
 						// Handle tempo change.
 						uint32_t mspq = getUint24_t(rawbuf + 3); // microsec per quarter note
-						thisTracktempo.addTempoMark(ev.start, ((double) mspq) / ((double) tpq));
+						if (ev.start == 0) {
+							p_hasTempoMarkAt0 = true;
+						}
+						thisTracktempo.addTempoMark(ev.start, ((double) mspq) / ((double) tpq) * 0.000001);
 					}
 					remaining -= rawbuf[2];
 					ev.setRaw(rawbuf, rawbuf + 3 + rawbuf[2]);
@@ -445,21 +360,32 @@ class ptrack : public track {
 					skip = true;
 					break;
 			}
-#ifdef DEBUG
-			/*if (! skip) {
-				char buf[256];
-				ev.getDescription(buf, 256);
-				cerr << "# " << buf << endl;
-				cerr << "remaining bytes: " << remaining << endl;
-			}*/
-#endif
+
 			if (! skip) {
-				if (ev.getCommand() != CMD_NOTE_OFF)
-				{
-					if (! (ev.getCommand() == CMD_META_EVENT &&
-							ev.getMetaCommand() == META_TEMPO_CHANGE)) {
-						eventsCol.push_back(ev);
-						assert (eventsCol.back() == ev);
+				#ifdef DEBUG
+					char buf[256];
+					ev.getDescription(buf, 256);
+					cerr << "# Event: " << buf << endl;
+					cerr << "# Remaining bytes: " << remaining << endl;
+				#endif
+				/* Check for NOTE_ON events with velocity = 0 which are actually NOTE_OFF events. */
+				if (ev.getCommand() == CMD_NOTE_ON && ev.getNoteVelocity() == 0) {
+					__typeof__(eventsCol.rbegin()) noteOn = findCorrespondingNoteOn(ev);
+					if (noteOn == eventsCol.rend())
+						cerr << "Warning: NOTE_ON (velocity = 0) event without corresponding NOTE_ON."
+						     << endl;
+					else {
+						noteOn->pairVelocity = DEFAULT_VELOCITY;
+						noteOn->len = ev.start - noteOn->start;
+					}
+				} else {
+					if (ev.getCommand() != CMD_NOTE_OFF)
+					{
+						if (! (ev.getCommand() == CMD_META_EVENT &&
+								ev.getMetaCommand() == META_TEMPO_CHANGE)) {
+							eventsCol.push_back(ev);
+							assert (eventsCol.back() == ev);
+						}
 					}
 				}
 			}
@@ -468,7 +394,7 @@ class ptrack : public track {
 		cerr << "# Debug: Finished reading a track. Here are the events:" << endl;
 		for (__typeof__(eventsCol.begin()) it = eventsCol.begin(); it != eventsCol.end(); it++) {
 			assert (it->getCommand() != CMD_NOTE_OFF);
-			cerr << "# Event type: " << cmd2str[(int) it->getCommand()] << "(" << (int) it->getCommand() << ")";
+			cerr << "# Event type: " << getCommandStr((int) it->getCommand()) << "(" << (int) it->getCommand() << ")";
 			cerr << ", start: " << it->start;
 			if (it->getCommand() == CMD_NOTE_ON)
 					cerr << ", duration: " << it->len
@@ -510,7 +436,7 @@ class ptrack : public track {
 		out.write("MTrk", 4);
 		printUint32_t(0xdeadbeef, out); // print length placeholder
 		totalLen += 4;
-		
+
 		for (__typeof__(saveEvents.begin()) it = saveEvents.begin(),
 			                prev = saveEvents.begin(); it != saveEvents.end(); it++) {
 			tick_t delta_tick = it->start - prev->start;
@@ -558,6 +484,10 @@ class ptrack : public track {
 		return eventsCol.size();
 	}
 
+	bool hasTempoMarkAt0() const {
+		return p_hasTempoMarkAt0;
+	}
+
 	friend class pmidi;
 
 	private:
@@ -565,7 +495,14 @@ class ptrack : public track {
 	vector<legacy_pevent> eventsCol;
 	tracktempo thisTracktempo;
 	uint16_t tpq;
+	bool p_hasTempoMarkAt0;
 
+	__typeof__(eventsCol.rbegin()) findCorrespondingNoteOn(const legacy_pevent& ev) {
+		__typeof__(eventsCol.rbegin()) noteOn = eventsCol.rbegin();
+		for (; noteOn != eventsCol.rend(); noteOn++)
+			if (noteOn->isNote() && noteOn->equalChannelAndPitch(ev)) break;
+		return noteOn;
+	}
 };
 
 class pmidi {
@@ -599,14 +536,16 @@ class pmidi {
 		for (unsigned i = 0; i < tracksCount; ++i)
 			t[i].load(in, tpq);
 
-		if (getFileFormat() == 1) {
+		/* Check declared file format. If it is 1, the file is synchronous. */
+		if (getUint16_t(header, 8) == 1) {
 			tracktempo mergedTracktempo(0.0);
 			for (unsigned i = 0; i < tracksCount; ++i) {
 				tick_t tempoMark = 0;
 				do
 				{
 					double secPerTick = t[i].getTrackTempo().readTempoMark(tempoMark);
-					mergedTracktempo.addTempoMark(tempoMark, secPerTick);
+					if (t[i].hasTempoMarkAt0() || (tempoMark != 0))
+						mergedTracktempo.addTempoMark(tempoMark, secPerTick);
 					tempoMark = t[i].getTrackTempo().nextTempoMarkAfter(tempoMark);
 				} while (tempoMark != 0);
 			}
@@ -682,92 +621,6 @@ class pmidi {
 		printUint16_t(tpq, out);
 	}
 
-};
-
-class common_pevent : public event {
-	public:
-	common_pevent() : raw(NULL) {};
-	~common_pevent() { if (raw != NULL) delete [] raw; }
-	void setBytes(uint8_t * data, int datalen) {
-		if (raw != NULL) delete [] raw;
-		raw = new uint8_t[datalen];
-		copy(data, data + datalen, raw);
-		rawlen = datalen;
-	}
-	/*virtual event& operator=(const event& o) {
-		if (this == &o) return *this;
-		uint8_t buf[260];
-		int buflen = o.getBytes(buf, 260);
-		setBytes(buf, buflen);
-		puts("common_pevent::operator= called");
-		return *this;
-	}*/
-	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length) const {
-		return copy(raw, raw + min(length, (unsigned) rawlen), buffer) - buffer;
-	}
-	protected:
-	uint8_t * raw;
-	int rawlen;
-
-	uint8_t getCommand() const {
-		return (raw[0] >> 4);
-	}
-
-	uint8_t getMetaCommand() const {
-		if (getCommand() != CMD_META_EVENT)
-			throw "getMetaCommand: Not a meta command!";
-		return raw[1];
-	}
-};
-
-class pevent : public common_pevent {
-	public:
-	pevent() {}
-	pevent(const pevent& o) {
-		setBytes(o.raw, o.rawlen);
-	}
-//	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length);
-	virtual void getDescription(char * buffer, unsigned int length) const {
-		stringstream ss(stringstream::in | stringstream::out);
-		ss.setf(ios::showbase);
-		ss << cmd2str[getCommand()];
-		if (getCommand() == CMD_META_EVENT) {
-			ss << ", meta command: " << hex << (int) raw[1];
-			if (getMetaCommand() == META_TEMPO_CHANGE) {
-				ss << ", META_TEMPO_CHANGE";
-			}
-		}
-		ss.getline(buffer, length);
-	}
-};
-
-class pnote : public common_pevent {
-	public:
-	pnote() : noteoff_raw(NULL) {}
-	pnote(const pnote& o) {
-		setBytes(o.raw, o.rawlen);
-		setNoteOffBytes(o.noteoff_raw, o.noteoff_rawlen);
-	}
-	virtual unsigned int getNoteOffBytes(uint8_t * buffer, unsigned int length) {
-		return copy(noteoff_raw, noteoff_raw +
-			min(length, (unsigned) noteoff_rawlen),buffer) - buffer;
-	}
-	void setNoteOffBytes(uint8_t * data, int datalen) {
-		if (noteoff_raw != NULL) delete [] noteoff_raw;
-		noteoff_raw = new uint8_t[datalen];
-		copy(data, data + datalen, noteoff_raw);
-		noteoff_rawlen = datalen;
-	}
-	virtual void getDescription(char * buffer, unsigned int length) const {
-		stringstream ss(stringstream::in | stringstream::out);
-		ss.setf(ios::showbase);
-		ss << cmd2str[getCommand()];
-		ss << ", pitch: " << hex << (int) raw[1];
-		ss.getline(buffer, length);
-	}
-	protected:
-	uint8_t * noteoff_raw;
-	int noteoff_rawlen;
 };
 
 

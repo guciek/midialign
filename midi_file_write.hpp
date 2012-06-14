@@ -11,6 +11,6 @@
 
 #include "midi.hpp"
 
-void midi_file_write(const midi &, const char *);
+bool midi_file_write(const midi &, const char *);
 
 #endif
