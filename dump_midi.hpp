@@ -11,6 +11,6 @@
 
 #include "midi.hpp"
 
-void dump_midi_stderr(const midi &);
+void dump_midi_stdout(const midi &);
 
 #endif

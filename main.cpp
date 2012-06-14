@@ -122,7 +122,7 @@ bool run(char ** params) {
 		}
 		params++;
 	}
-	if (!saved) dump_midi_stderr(m);
+	if (!saved) dump_midi_stdout(m);
 	return true;
 }
 
