@@ -24,9 +24,9 @@ const char * getCommandStr(uint8_t cmd) {
 		"CMD_PROGRAM_CHANGE",
 		"CMD_CHANNEL_AFTER_TOUCH",
 		"CMD_PITCH_WHEEL_CHANGE",
-		"CMD_META_EVENT",
+		"CMD_META_EVENT"
 	};
-	if (cmd > (sizeof(tab)/sizeof(tab[0]))) return "UNKNOWN";
+	if (cmd >= (sizeof(tab)/sizeof(tab[0]))) return "UNKNOWN";
 	return tab[cmd];
 }
 
