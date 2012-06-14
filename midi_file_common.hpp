@@ -35,6 +35,8 @@ using namespace std;
 #define META_TEMPO_CHANGE          0x51
 #define META_TRACK_END             0x2F
 
+#define DEFAULT_VELOCITY           64
+
 extern const char * FILE_FORMAT[];
 extern const char * cmd2str[];
 

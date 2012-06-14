@@ -95,13 +95,19 @@ class legacy_pevent {
 		return raw[1];
 	}
 
+	uint8_t getNoteVelocity() const {
+		if (getCommand() != CMD_NOTE_ON && getCommand() != CMD_NOTE_OFF)
+			throw "getNoteVelocity: velocity not defined for events of this type!";
+		return raw[2];
+	}
+
 	/**
 	 * Test if events are the same wrt. channel and first byte after
 	 * a command byte.
 	 * Particulary, if this and o are EVENT_NOTEs, tells if
 	 * they are the same pitch and on the same channel.
 	 **/
-	bool equalChannelAndPitch(legacy_pevent &o) {
+	bool equalChannelAndPitch(const legacy_pevent &o) {
 		return (
 			((raw[0] & EVENT_CHANNEL_MASK) == (o.raw[0] & EVENT_CHANNEL_MASK)) &&
 			(raw[1] == o.raw[1])
@@ -304,9 +310,7 @@ class ptrack : public track {
 					remaining -= 2 - runningMode;
 					
 					{
-						__typeof__(eventsCol.rbegin()) noteOn = eventsCol.rbegin();
-						for (; noteOn != eventsCol.rend(); noteOn++)
-							if (noteOn->isNote() && noteOn->equalChannelAndPitch(ev)) break;
+						__typeof__(eventsCol.rbegin()) noteOn = findCorrespondingNoteOn(ev);
 						if (noteOn == eventsCol.rend())
 							cerr << "Warning: NOTE_OFF event without corresponding NOTE_ON." << endl;
 						else {
@@ -364,12 +368,24 @@ class ptrack : public track {
 			}
 #endif
 			if (! skip) {
-				if (ev.getCommand() != CMD_NOTE_OFF)
-				{
-					if (! (ev.getCommand() == CMD_META_EVENT &&
-							ev.getMetaCommand() == META_TEMPO_CHANGE)) {
-						eventsCol.push_back(ev);
-						assert (eventsCol.back() == ev);
+				/* Check for NOTE_ON events with velocity = 0 which are actually NOTE_OFF events. */
+				if (ev.getCommand() == CMD_NOTE_ON && ev.getNoteVelocity() == 0) {
+					__typeof__(eventsCol.rbegin()) noteOn = findCorrespondingNoteOn(ev);
+					if (noteOn == eventsCol.rend())
+						cerr << "Warning: NOTE_ON (velocity = 0) event without corresponding NOTE_ON."
+						     << endl;
+					else {
+						noteOn->pairVelocity = DEFAULT_VELOCITY;
+						noteOn->len = ev.start - noteOn->start;
+					}
+				} else {
+					if (ev.getCommand() != CMD_NOTE_OFF)
+					{
+						if (! (ev.getCommand() == CMD_META_EVENT &&
+								ev.getMetaCommand() == META_TEMPO_CHANGE)) {
+							eventsCol.push_back(ev);
+							assert (eventsCol.back() == ev);
+						}
 					}
 				}
 			}
@@ -481,6 +497,12 @@ class ptrack : public track {
 	uint16_t tpq;
 	bool p_hasTempoMarkAt0;
 
+	__typeof__(eventsCol.rbegin()) findCorrespondingNoteOn(const legacy_pevent& ev) {
+		__typeof__(eventsCol.rbegin()) noteOn = eventsCol.rbegin();
+		for (; noteOn != eventsCol.rend(); noteOn++)
+			if (noteOn->isNote() && noteOn->equalChannelAndPitch(ev)) break;
+		return noteOn;
+	}
 };
 
 class pmidi {
