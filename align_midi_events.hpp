@@ -11,6 +11,7 @@
 
 #include "midi.hpp"
 
-void align_midi_events(midi & m, const tracktempo & t);
+void align_midi_events(midi & m, tick_t tickPerQuarterNote,
+	const tracktempo & newtempo);
 
 #endif

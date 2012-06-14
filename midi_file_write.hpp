@@ -6,12 +6,12 @@
 * - Karol Guciek                                                          *
 **************************************************************************/
 
-#ifndef FIND_NICE_TEMPO_H
-#define FIND_NICE_TEMPO_H
+#ifndef MIDI_FILE_WRITE_H
+#define MIDI_FILE_WRITE_H
 
-#include "tracktempo.hpp"
+#include "midi.hpp"
+#include "midi_file_common.hpp"
 
-double find_nice_constant_bpm(const double * event_times,
-		unsigned int event_count);
+bool midi_file_write(const midi &, const char *);
 
 #endif

@@ -14,38 +14,38 @@ using namespace std;
 
 tick_t nearest_tick(const tracktempo & t, double s) {
 	tick_t b = 256;
-	while (t.getTickTime(b) < s) b <<= 4;
+	while (t.getTickTime(b) <= s) b <<= 4;
 	tick_t a = 0;
 	while (a+1 < b) {
 		tick_t m = (a+b) >> 1;
 		if (t.getTickTime(m) > s) b = m;
 		else a = m;
 	}
+	if (s >= (0.5*(t.getTickTime(b)+t.getTickTime(a)))) return b;
 	return a;
 }
 
-void align_midi_event(event & e, const tracktempo & oldtempo,
-		const tracktempo & newtempo) {
-	double s = oldtempo.getTickTime(e.getStartTicks());
+void align_midi_event(track & t, unsigned int i, const tracktempo & newtempo) {
+	double s = t.getEventSeconds(i);
 	tick_t start_ticks = nearest_tick(newtempo, s);
-	if (e.isNote()) {
-		double d = oldtempo.getTickTime(e.getStartTicks()+
-			e.getDurationTicks()) - s;
+	if (t.events(i).isNote()) {
+		double d = t.getNoteDurationSeconds(i);
 		tick_t duration_ticks = nearest_tick(newtempo,
 			newtempo.getTickTime(start_ticks)+d) - start_ticks;
 		if (duration_ticks < 1) duration_ticks = 1;
-		e.setDurationTicks(duration_ticks);
+		t.setNoteDurationTicks(i, duration_ticks);
 	}
-	e.setStartTicks(start_ticks);
+	t.setEventTicks(i, start_ticks);
 }
 
-void align_midi_events(midi & m, const tracktempo & newtempo) {
+void align_midi_events(midi & m, tick_t tickPerQuarterNote,
+	const tracktempo & newtempo) {
 	for (unsigned int i = 0; i < m.trackCount(); i++) {
 		tracktempo oldtempo = m.tracks(i).getTrackTempo();
 		for (unsigned int j = 0; j < m.tracks(i).eventCount(); j++) {
-			align_midi_event(m.tracks(i).events(j),
-				oldtempo, newtempo);
-			m.tracks(i).setTrackTempo(newtempo);
+			align_midi_event(m.tracks(i), j, newtempo);
 		}
+		m.tracks(i).setTrackTempo(newtempo);
 	}
+	m.setTicksPerQuaterNote(tickPerQuarterNote);
 }

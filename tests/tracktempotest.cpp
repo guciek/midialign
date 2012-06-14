@@ -20,29 +20,29 @@ int test1() {
 	T.addTempoMark(3, 3.0);
 	T.delTempoMark(2);
 
-	if ( T.getTickTime(0) != 0.0) { FAIL; return 1; }
-	if ( T.getTickTime(1) != 2.0) { FAIL; return 1; }
-	if ( T.getTickTime(2) != 4.0) { FAIL; return 1; }
-	if ( T.getTickTime(3) != 6.0) { FAIL; return 1; }
-	if ( T.getTickTime(4) != 9.0) { FAIL; return 1; }
-	if ( T.getTickTime(5) != 10.0) { FAIL; return 1; }
-	if ( T.getTickTime(6) != 11.0) { FAIL; return 1; }
+	if (T.getTickTime(0) != 0.0) { FAIL; return 1; }
+	if (T.getTickTime(1) != 2.0) { FAIL; return 1; }
+	if (T.getTickTime(2) != 4.0) { FAIL; return 1; }
+	if (T.getTickTime(3) != 6.0) { FAIL; return 1; }
+	if (T.getTickTime(4) != 9.0) { FAIL; return 1; }
+	if (T.getTickTime(5) != 10.0) { FAIL; return 1; }
+	if (T.getTickTime(6) != 11.0) { FAIL; return 1; }
 
-	if ( T.nextTempoMarkAfter(0) != 3) { FAIL; return 1; }
-	if ( T.nextTempoMarkAfter(1) != 3) { FAIL; return 1; }
-	if ( T.nextTempoMarkAfter(2) != 3) { FAIL; return 1; }
-	if ( T.nextTempoMarkAfter(3) != 4) { FAIL; return 1; }
-	if ( T.nextTempoMarkAfter(4) != 0) { FAIL; return 1; }
-	if ( T.nextTempoMarkAfter(5) != 0) { FAIL; return 1; }
-	if ( T.nextTempoMarkAfter(6) != 0) { FAIL; return 1; }
+	if (T.nextTempoMarkAfter(0) != 3) { FAIL; return 1; }
+	if (T.nextTempoMarkAfter(1) != 3) { FAIL; return 1; }
+	if (T.nextTempoMarkAfter(2) != 3) { FAIL; return 1; }
+	if (T.nextTempoMarkAfter(3) != 4) { FAIL; return 1; }
+	if (T.nextTempoMarkAfter(4) != 0) { FAIL; return 1; }
+	if (T.nextTempoMarkAfter(5) != 0) { FAIL; return 1; }
+	if (T.nextTempoMarkAfter(6) != 0) { FAIL; return 1; }
 	
-	if ( T.readTempoMark(0) != 2.0) { FAIL; return 1; }
-	if ( T.readTempoMark(1) != 2.0) { FAIL; return 1; }
-	if ( T.readTempoMark(2) != 2.0) { FAIL; return 1; }
-	if ( T.readTempoMark(3) != 3.0) { FAIL; return 1; }
-	if ( T.readTempoMark(4) != 1.0) { FAIL; return 1; }
-	if ( T.readTempoMark(5) != 1.0) { FAIL; return 1; }
-	if ( T.readTempoMark(6) != 1.0) { FAIL; return 1; }
+	if (T.readTempoMark(0) != 2.0) { FAIL; return 1; }
+	if (T.readTempoMark(1) != 2.0) { FAIL; return 1; }
+	if (T.readTempoMark(2) != 2.0) { FAIL; return 1; }
+	if (T.readTempoMark(3) != 3.0) { FAIL; return 1; }
+	if (T.readTempoMark(4) != 1.0) { FAIL; return 1; }
+	if (T.readTempoMark(5) != 1.0) { FAIL; return 1; }
+	if (T.readTempoMark(6) != 1.0) { FAIL; return 1; }
 
 	return 0;
 }
@@ -61,9 +61,29 @@ int test2() {
 	return 0;
 }
 
+int test3() {
+	tracktempo T(1.0);
+	if (T.getTickTime(5) != 5.0) { FAIL; return 1; }
+	if (T.readTempoMark(0) != 1.0) { FAIL; return 1; }
+	T.addTempoMark(0, 2.0);
+	if (T.getTickTime(5) != 10.0) { FAIL; return 1; }
+	if (T.readTempoMark(0) != 2.0) { FAIL; return 1; }
+	
+	tracktempo T2 = T;
+	if (T2.getTickTime(5) != 10.0) { FAIL; return 1; }
+	if (T2.readTempoMark(0) != 2.0) { FAIL; return 1; }
+	
+	tracktempo T3(T);
+	if (T3.getTickTime(5) != 10.0) { FAIL; return 1; }
+	if (T3.readTempoMark(0) != 2.0) { FAIL; return 1; }
+
+	return 0;
+}
+
 int main(void) {
 	if (test1()) return 1;
 	if (test2()) return 1;
+	if (test3()) return 1;
 
 	return 0;
 }
