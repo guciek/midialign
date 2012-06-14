@@ -79,7 +79,7 @@ class ptracktempo {
 	#endif
 	}
 
-	double getTickTime(tick_t tick) {
+	double getTickTime(tick_t tick) const {
 		// TODO O(n) -> (lgn)
 		double total = 0.0;
 		__typeof__(tempoList.begin()) it = tempoList.begin();
@@ -119,12 +119,16 @@ class ptracktempo {
 	}
 
 	tick_t findNearestTick(double time_seconds) const {
-		//~ int size = tempoList.size();
-		//~ int s=0;
-		//~ int s = size-1;
-		//~ while(tempoList[s].tempo
-		
-		return 0;
+		tick_t b = 256;
+		while (getTickTime(b) <= time_seconds) b <<= 4;
+		tick_t a = 0;
+		while (a+1 < b) {
+			tick_t m = (a+b) >> 1;
+			if (getTickTime(m) > time_seconds) b = m;
+			else a = m;
+		}
+		if (time_seconds >= (0.5*(getTickTime(b)+getTickTime(a)))) return b;
+		return a;
 	}
 
 	bool operator==(const ptracktempo& b) const {
