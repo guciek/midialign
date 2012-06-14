@@ -17,31 +17,45 @@
 
 using namespace std;
 
-typedef pair<tick_t, double> tTempoMark;
+//~ typedef pair<tick_t, double> tTempoMark;
+
+class tTempoMark{
+	public:
+	tick_t tick;
+	double tempo;
+	double time;
+	tTempoMark(tick_t t,double s): tick(t), tempo(s), time(0) {}
+};
 
 class ptracktempo {
 	public:
 
 	ptracktempo(double seconds_per_tick) {
 		tempoList.push_back(tTempoMark(0,seconds_per_tick));		// tick 0
+		lastUpdatedTick = 0;
 	}
 
 	void addTempoMark(tick_t tick, double seconds_per_tick) {
-		list<tTempoMark>::iterator it = tempoList.end();
+		__typeof__(tempoList.end()) it = tempoList.end();
 		it--;
-		while(it->first > tick) {
+		while(it->tick > tick) {
 			it--;
 		}
-		if(it->first != tick) {
+		if(it->tick != tick) {
 			it++;
 			tempoList.insert(it,tTempoMark(tick,seconds_per_tick));	//~ add element
 		}
 		else {
-			it->second = seconds_per_tick;
+			it->tempo = seconds_per_tick;
+		}
+		// update time
+		if (tick-1 <= lastUpdatedTick) {
+			//~ time = 
+			lastUpdatedTick = tick;
 		}
 	#ifdef DEBUG
 		//~ for(it = tempoList.begin(); it!=tempoList.end(); it++){
-			//~ printf("%llu %lf\n", it->first, it->second);
+			//~ printf("%llu %lf\n", it->tick, it->tempo);
 		//~ } printf("\n");
 	#endif	
 	}
@@ -50,31 +64,32 @@ class ptracktempo {
 		if (tick == 0) {
 			return;
 		}
-		list<tTempoMark>::iterator it = tempoList.end();
+		__typeof__(tempoList.end()) it = tempoList.end();
 		it--;
-		while(it->first > tick) {
+		while(it->tick > tick) {
 			it--;
 		}
-		if(it->first == tick) {
+		if(it->tick == tick) {
 			tempoList.erase(it);	//~ remove element
 		}
 	#ifdef DEBUG
 		//~ for(it = tempoList.begin(); it!=tempoList.end(); it++){
-			//~ printf("%llu %lf\n", it->first, it->second);
+			//~ printf("%llu %lf\n", it->tick, it->tempo);
 		//~ } printf("\n");
 	#endif
 	}
 
 	double getTickTime(tick_t tick) {
+		// TODO O(n) -> (lgn)
 		double total = 0.0;
-		list<tTempoMark>::iterator it = tempoList.begin();
+		__typeof__(tempoList.begin()) it = tempoList.begin();
 		tick_t prev_tick = 0;
-		double prev_tempo = it->second;
+		double prev_tempo = it->tempo;
 		it++;
-		while (it != tempoList.end() && it->first < tick) {
-			total += (it->first - prev_tick)*(prev_tempo);
-			prev_tick = it->first;
-			prev_tempo = it->second;
+		while (it != tempoList.end() && it->tick < tick) {
+			total += (it->tick - prev_tick)*(prev_tempo);
+			prev_tick = it->tick;
+			prev_tempo = it->tempo;
 			it++;
 		}
 		total += (tick - prev_tick)*(prev_tempo);
@@ -85,24 +100,31 @@ class ptracktempo {
 	}
 	
 	tick_t nextTempoMarkAfter(tick_t tick) const {
-		//~ list<tTempoMark>::const_iterator it = tempoList.begin();
 		__typeof__(tempoList.begin()) it = tempoList.begin();
-		while(it != tempoList.end() && it->first <= tick) {
+		while(it != tempoList.end() && it->tick <= tick) {
 			it++;
 		}
 		if(it != tempoList.end()) {
-			return it->first;
+			return it->tick;
 		}
 		else return 0;
 	}
 	
 	double readTempoMark(tick_t tick) const {
-		//~ list<tTempoMark>::const_iterator it = tempoList.end();
 		__typeof__(tempoList.end()) it = tempoList.end();
 		do {
 			it--;
-		} while (it->first > tick);
-		return it->second;
+		} while (it->tick > tick);
+		return it->tempo;
+	}
+
+	tick_t findNearestTick(double time_seconds) const {
+		//~ int size = tempoList.size();
+		//~ int s=0;
+		//~ int s = size-1;
+		//~ while(tempoList[s].tempo
+		
+		return 0;
 	}
 
 	bool operator==(const ptracktempo& b) const {
@@ -116,25 +138,25 @@ class ptracktempo {
 		while (ita != this->tempoList.end() || itb != b.tempoList.end() ) {
 			if ( da!=db ) return 0;
 			if ( ita == this->tempoList.end() ) {
-				db = itb->second;
+				db = itb->tempo;
 				itb++;
 			}
 			else if ( itb == b.tempoList.end() ) {
-				da = ita->second;
+				da = ita->tempo;
 				ita++;
 			}
-			else if( ita->first > itb->first ) {
-				db = itb->second;
+			else if( ita->tick > itb->tick ) {
+				db = itb->tempo;
 				itb++;
 			}
-			else if( ita->first < itb->first ) {
-				da = ita->second;
+			else if( ita->tick < itb->tick ) {
+				da = ita->tempo;
 				ita++;
 			}
 			else {
-				da = ita->second;
+				da = ita->tempo;
 				ita++;
-				db = itb->second;
+				db = itb->tempo;
 				itb++;
 			}
 		}
@@ -150,9 +172,8 @@ class ptracktempo {
 	//~ ~ptracktempo(){};
 
 	private:
-
-	//~ TODO replace list with vector, for linear insertions, but getTickTime() in O(lg)
-	list<tTempoMark> tempoList;
+	vector<tTempoMark> tempoList;
+	tick_t lastUpdatedTick;
 };
 
 tracktempo::tracktempo(double seconds_per_tick)
@@ -176,6 +197,9 @@ tick_t tracktempo::nextTempoMarkAfter(tick_t tick) const
 	{ return ((ptracktempo *)p)->nextTempoMarkAfter(tick); }
 double tracktempo::readTempoMark(tick_t tick) const
 	{ return ((ptracktempo *)p)->readTempoMark(tick); }
+
+tick_t tracktempo::findNearestTick(double time_seconds) const
+	{ return ((ptracktempo *)p)->findNearestTick(time_seconds); }
 
 bool tracktempo::operator==(const tracktempo& b) const
 	{ return ((ptracktempo *)p)->operator==( (*(ptracktempo *)b.p) ); }
