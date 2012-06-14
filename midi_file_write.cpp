@@ -7,6 +7,7 @@
 **************************************************************************/
 
 #include "midi_file_write.hpp"
+#include "midi_file_common.hpp"
 #include "stream_utils.hpp"
 
 #include <vector>
@@ -15,11 +16,11 @@
 #include <algorithm>
 #include <fstream>
 
-extern const char * FILE_FORMAT[];
-extern const char * cmd2str[];
-
 using namespace std;
 using namespace tr1;
+
+#define EVENT_COMMAND_MASK         0xF0
+#define EVENT_CHANNEL_MASK         0xF
 
 struct start_event {
 	shared_ptr<event> e;
@@ -53,14 +54,7 @@ void printHeader(const midi& m, ostream &out) {
 	printUint16_t((uint16_t) m.getTicksPerQuaterNote(), out);
 }
 bool startCmp(start_event a, start_event b) {
-	// first things first
 	return a.start < b.start;
-	/*if (a.start != b.start) return a.start < b.start;
-	if (a.getCommand() == CMD_META_EVENT && a.getMetaCommand() == META_TRACK_END)
-		return false;
-	if (b.getCommand() == CMD_META_EVENT && b.getMetaCommand() == META_TRACK_END)
-		return true;
-	return a.start < b.start;*/
 }
 void assignTempoMark(uint32_t msecPerQuarter, pevent& e) {
 	if ((msecPerQuarter & ((uint32_t) 0xFF000000)) != 0) {

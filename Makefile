@@ -22,3 +22,6 @@ bin/midialign: $(OFILES_PROD)
 
 bin/prod/%.o: %.cpp $(HPPFILES) Makefile
 	mkdir -p bin/prod && g++ -c $(GCCOPTS) $(PRODOPTS) $< -o $@
+
+clean:
+	rm -rf bin

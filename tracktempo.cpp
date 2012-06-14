@@ -17,8 +17,6 @@
 
 using namespace std;
 
-//~ typedef pair<tick_t, double> tTempoMark;
-
 class tTempoMark{
 	public:
 	tick_t tick;
@@ -31,7 +29,7 @@ class ptracktempo {
 	public:
 
 	ptracktempo(double seconds_per_tick) {
-		tempoList.push_back(tTempoMark(0,seconds_per_tick));		// tick 0
+		tempoList.push_back(tTempoMark(0,seconds_per_tick)); // tick 0
 		lastUpdatedTick = 0;
 	}
 
@@ -43,21 +41,15 @@ class ptracktempo {
 		}
 		if(it->tick != tick) {
 			it++;
-			tempoList.insert(it,tTempoMark(tick,seconds_per_tick));	//~ add element
+			tempoList.insert(it,tTempoMark(tick,seconds_per_tick)); // add element
 		}
 		else {
 			it->tempo = seconds_per_tick;
 		}
 		// update time
 		if (tick-1 <= lastUpdatedTick) {
-			//~ time =
 			lastUpdatedTick = tick;
 		}
-	#ifdef DEBUG
-		//~ for(it = tempoList.begin(); it!=tempoList.end(); it++){
-			//~ printf("%llu %lf\n", it->tick, it->tempo);
-		//~ } printf("\n");
-	#endif
 	}
 
 	void delTempoMark(tick_t tick) {
@@ -70,13 +62,8 @@ class ptracktempo {
 			it--;
 		}
 		if(it->tick == tick) {
-			tempoList.erase(it);	//~ remove element
+			tempoList.erase(it); // remove element
 		}
-	#ifdef DEBUG
-		//~ for(it = tempoList.begin(); it!=tempoList.end(); it++){
-			//~ printf("%llu %lf\n", it->tick, it->tempo);
-		//~ } printf("\n");
-	#endif
 	}
 
 	double getTickTime(tick_t tick) const {
@@ -93,9 +80,6 @@ class ptracktempo {
 			it++;
 		}
 		total += (tick - prev_tick)*(prev_tempo);
-	#ifdef DEBUG
-		//~ printf("%3llu %10lf\n", tick, total);
-	#endif
 		return total;
 	}
 
@@ -132,10 +116,6 @@ class ptracktempo {
 	}
 
 	bool operator==(const ptracktempo& b) const {
-		#ifdef DEBUG
-			//~ printf("#ptracktempo::operator== tempoList.size(): %d\n", (int)b.tempoList.size());
-			//~ printf("
-		#endif
 		__typeof__(tempoList.begin()) ita = tempoList.begin();
 		__typeof__(b.tempoList.begin()) itb = b.tempoList.begin();
 		double da=0.0, db=0.0;
@@ -171,9 +151,6 @@ class ptracktempo {
 	bool operator!=(const ptracktempo& b) const {
 		return ( !(*this==b));
 	}
-
-	//~ TODO destructor if needed
-	//~ ~ptracktempo(){};
 
 	private:
 	vector<tTempoMark> tempoList;

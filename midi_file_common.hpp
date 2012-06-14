@@ -15,14 +15,6 @@
 
 using namespace std;
 
-
-#define EVENT_COMMAND_MASK         0xF0
-#define EVENT_CHANNEL_MASK         0xF
-
-#define FORMAT_SINGLE_TRACK        0
-#define FORMAT_MULT_TRACKS_SYNC    1
-#define FORMAT_MULT_TRACKS_ASYNC   2
-
 #define CMD_NOTE_OFF               0x8
 #define CMD_NOTE_ON                0x9
 #define CMD_KEY_AFTER_TOUCH        0xA
@@ -35,10 +27,7 @@ using namespace std;
 #define META_TEMPO_CHANGE          0x51
 #define META_TRACK_END             0x2F
 
-#define DEFAULT_VELOCITY           64
-
-extern const char * FILE_FORMAT[];
-extern const char * cmd2str[];
+const char * getCommandStr(uint8_t cmd);
 
 class common_pevent : public event {
 	public:

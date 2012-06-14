@@ -12,27 +12,23 @@
 #include <sstream>
 #include <iostream>
 
-const char * FILE_FORMAT[] = {
-	"single-track",
-	"multiple tracks, synchronous",
-	"multiple tracks, asynchronous"
-};
-
-const char * cmd2str[] = {
-	"0", "1", "2", "3", "4", "5", "6", "7",
-	"CMD_NOTE_OFF",
-	"CMD_NOTE_ON",
-	"CMD_KEY_AFTER_TOUCH",
-	"CMD_CONTROL_CHANGE",
-	"CMD_PROGRAM_CHANGE",
-	"CMD_CHANNEL_AFTER_TOUCH",
-	"CMD_PITCH_WHEEL_CHANGE",
-	"CMD_META_EVENT",
-};
-
-
 using namespace std;
 
+const char * getCommandStr(uint8_t cmd) {
+	static const char * tab[] = {
+		"0", "1", "2", "3", "4", "5", "6", "7",
+		"CMD_NOTE_OFF",
+		"CMD_NOTE_ON",
+		"CMD_KEY_AFTER_TOUCH",
+		"CMD_CONTROL_CHANGE",
+		"CMD_PROGRAM_CHANGE",
+		"CMD_CHANNEL_AFTER_TOUCH",
+		"CMD_PITCH_WHEEL_CHANGE",
+		"CMD_META_EVENT",
+	};
+	if (cmd > (sizeof(tab)/sizeof(tab[0]))) return "UNKNOWN";
+	return tab[cmd];
+}
 
 // ========= common_pevent =========== //
 
@@ -44,14 +40,6 @@ void common_pevent::setBytes(uint8_t * data, int datalen) {
 	copy(data, data + datalen, raw);
 	rawlen = datalen;
 }
-/*virtual event& operator=(const event& o) {
-	if (this == &o) return *this;
-	uint8_t buf[260];
-	int buflen = o.getBytes(buf, 260);
-	setBytes(buf, buflen);
-	puts("common_pevent::operator= called");
-	return *this;
-}*/
 unsigned int common_pevent::getBytes(uint8_t * buffer, unsigned int length) const {
 	return copy(raw, raw + min(length, (unsigned) rawlen), buffer) - buffer;
 }
@@ -79,11 +67,10 @@ pevent::pevent() {}
 pevent::pevent(const pevent& o) {
 	setBytes(o.raw, o.rawlen);
 }
-//	virtual unsigned int getBytes(uint8_t * buffer, unsigned int length);
 void pevent::getDescription(char * buffer, unsigned int length) const {
 	stringstream ss(stringstream::in | stringstream::out);
 	ss.setf(ios::showbase);
-	ss << cmd2str[getCommand()];
+	ss << getCommandStr(getCommand());
 	if (getCommand() == CMD_META_EVENT) {
 		ss << ", meta command: " << hex << (int) raw[1];
 		if (getMetaCommand() == META_TEMPO_CHANGE) {
@@ -118,7 +105,7 @@ void pnote::setNoteOffBytes(uint8_t * data, int datalen) {
 void pnote::getDescription(char * buffer, unsigned int length) const {
 	stringstream ss(stringstream::in | stringstream::out);
 	ss.setf(ios::showbase);
-	ss << cmd2str[getCommand()];
+	ss << getCommandStr(getCommand());
 	ss << ", pitch: " << hex << (int) raw[1];
 	ss.getline(buffer, length);
 }

@@ -7,6 +7,7 @@
 **************************************************************************/
 
 #include "midi_file_read.hpp"
+#include "midi_file_common.hpp"
 #include "stream_utils.hpp"
 
 #include <vector>
@@ -21,8 +22,24 @@
 
 using namespace std;
 
-class pmidi; // announce
+#define DEFAULT_VELOCITY 64
 
+#define FORMAT_SINGLE_TRACK        0
+#define FORMAT_MULT_TRACKS_SYNC    1
+#define FORMAT_MULT_TRACKS_ASYNC   2
+
+#define EVENT_COMMAND_MASK         0xF0
+#define EVENT_CHANNEL_MASK         0xF
+
+#ifdef DEBUG
+	const char * FILE_FORMAT[] = {
+		"single-track",
+		"multiple tracks, synchronous",
+		"multiple tracks, asynchronous"
+	};
+#endif
+
+class pmidi;
 
 class legacy_pevent {
 	public:
@@ -31,19 +48,16 @@ class legacy_pevent {
 	legacy_pevent(tick_t start, track * home)
 		: start(start), len(0), pairVelocity(0), raw(NULL), rawlen(0), home(home) {}
 	legacy_pevent(const legacy_pevent& o) {
-		//cerr << "BBB" << endl;
 		start = o.start;
 		len = o.len;
 		rawlen = o.rawlen;
 		pairVelocity = o.pairVelocity;
 		home = o.home;
 		if (o.rawlen > 0) {
-			//cerr << "CCC " << (int) o.raw[0] << endl;
 			raw = new uint8_t[rawlen];
 			memcpy(raw, o.raw, rawlen);
 			for (int i = 0; i < rawlen; ++i)
 				raw[i] = o.raw[i];
-			//copy(o.raw, o.raw + rawlen, raw);
 		}
 		else
 			raw = NULL;
@@ -112,21 +126,12 @@ class legacy_pevent {
 			((raw[0] & EVENT_CHANNEL_MASK) == (o.raw[0] & EVENT_CHANNEL_MASK)) &&
 			(raw[1] == o.raw[1])
 			);
-		/*if (rawlen != o.rawlen)
-			return false;
-		if (rawlen > 0) {
-			if ((raw[0] & EVENT_CHANNEL_MASK) != (o.raw[0] & EVENT_CHANNEL_MASK))
-				return false;
-			if (strncmp((char *) raw + 1, (char *) o.raw + 1, rawlen - 1) != 0)
-				return false;
-		}
-		return true;*/
 	}
 
 	virtual void getDescription(char * buffer, unsigned int length) const {
 		stringstream ss(stringstream::in | stringstream::out);
 		ss.setf(ios::showbase);
-		ss << cmd2str[getCommand()];
+		ss << getCommandStr(getCommand());
 		if (isNote()) {
 			ss << ", pitch: " << hex << (int) raw[1];
 		}
@@ -184,7 +189,6 @@ class legacy_pevent {
 
 	legacy_pevent& operator=(const legacy_pevent& rhs) {
 		if (this == &rhs) return *this;
-		//cerr << "AAA" << endl;
 		start = rhs.start;
 		len = rhs.len;
 		rawlen = rhs.rawlen;
@@ -238,7 +242,6 @@ ostream& operator<<(ostream& out, const legacy_pevent& ev) {
 }
 
 bool startCmp(legacy_pevent a, legacy_pevent b) {
-	// first things first
 	if (a.start != b.start) return a.start < b.start;
 	if (a.getCommand() == CMD_META_EVENT && a.getMetaCommand() == META_TRACK_END)
 		return false;
@@ -293,8 +296,6 @@ class ptrack : public track {
 			--remaining;
 			// Check if we have a running event.
 			if ((rawbuf[0] & 0x80) == (uint8_t) 0) {
-				//rawbuf[0] = (rawbuf[0] & 0xF);
-				//rawbuf[0] = (rawbuf[0] | (previousCommand & 0xF0));
 				rawbuf[1] = rawbuf[0]; // pass this byte as command's argument
 				rawbuf[0] = previousCommand; // treat this command the same as previous one
 				runningMode = 1;
@@ -359,15 +360,14 @@ class ptrack : public track {
 					skip = true;
 					break;
 			}
-#ifdef DEBUG
+
 			if (! skip) {
-				char buf[256];
-				ev.getDescription(buf, 256);
-				cerr << "# " << buf << endl;
-				cerr << "remaining bytes: " << remaining << endl;
-			}
-#endif
-			if (! skip) {
+				#ifdef DEBUG
+					char buf[256];
+					ev.getDescription(buf, 256);
+					cerr << "# Event: " << buf << endl;
+					cerr << "# Remaining bytes: " << remaining << endl;
+				#endif
 				/* Check for NOTE_ON events with velocity = 0 which are actually NOTE_OFF events. */
 				if (ev.getCommand() == CMD_NOTE_ON && ev.getNoteVelocity() == 0) {
 					__typeof__(eventsCol.rbegin()) noteOn = findCorrespondingNoteOn(ev);
@@ -394,7 +394,7 @@ class ptrack : public track {
 		cerr << "# Debug: Finished reading a track. Here are the events:" << endl;
 		for (__typeof__(eventsCol.begin()) it = eventsCol.begin(); it != eventsCol.end(); it++) {
 			assert (it->getCommand() != CMD_NOTE_OFF);
-			cerr << "# Event type: " << cmd2str[(int) it->getCommand()] << "(" << (int) it->getCommand() << ")";
+			cerr << "# Event type: " << getCommandStr((int) it->getCommand()) << "(" << (int) it->getCommand() << ")";
 			cerr << ", start: " << it->start;
 			if (it->getCommand() == CMD_NOTE_ON)
 					cerr << ", duration: " << it->len

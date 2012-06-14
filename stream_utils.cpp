@@ -57,14 +57,12 @@ void setUint24_t(uint32_t val, uint8_t * out) {
 void printUint32_t(uint32_t val, ostream& out) {
 	for (int i = 24; i >= 0; i -= 8) {
 		out.put((char) ((val >> i) & 0x000000FF));
-		//out << (val & 0x000000FF);
 	}
 }
 
 void printUint16_t(uint16_t val, ostream& out) {
 	for (int i = 8; i >= 0; i -= 8) {
 		out.put((char) ((val >> i) & 0x000000FF));
-		//out << (val & 0x000000FF);
 	}
 }
 
