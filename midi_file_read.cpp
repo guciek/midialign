@@ -308,7 +308,7 @@ class ptrack : public track {
 					in.read((char *) rawbuf + 1 + runningMode, 2 - runningMode);
 					ev.setRaw(rawbuf, rawbuf + 3);
 					remaining -= 2 - runningMode;
-					
+
 					{
 						__typeof__(eventsCol.rbegin()) noteOn = findCorrespondingNoteOn(ev);
 						if (noteOn == eventsCol.rend())
@@ -342,7 +342,7 @@ class ptrack : public track {
 					remaining -= 2 - runningMode;
 					in.read((char *) rawbuf + 3, rawbuf[2]);
 					if (rawbuf[1] == META_TEMPO_CHANGE) {
-						// Handle tempo change.	
+						// Handle tempo change.
 						uint32_t mspq = getUint24_t(rawbuf + 3); // microsec per quarter note
 						if (ev.start == 0) {
 							p_hasTempoMarkAt0 = true;
@@ -436,7 +436,7 @@ class ptrack : public track {
 		out.write("MTrk", 4);
 		printUint32_t(0xdeadbeef, out); // print length placeholder
 		totalLen += 4;
-		
+
 		for (__typeof__(saveEvents.begin()) it = saveEvents.begin(),
 			                prev = saveEvents.begin(); it != saveEvents.end(); it++) {
 			tick_t delta_tick = it->start - prev->start;
@@ -483,7 +483,7 @@ class ptrack : public track {
 	virtual unsigned int eventCount() const {
 		return eventsCol.size();
 	}
-	
+
 	bool hasTempoMarkAt0() const {
 		return p_hasTempoMarkAt0;
 	}

@@ -5,7 +5,7 @@
 * Authors:                                                                *
 * - Karol Guciek                                                          *
 **************************************************************************/
- 
+
 #include <vector>
 #include <iostream>
 using namespace std;

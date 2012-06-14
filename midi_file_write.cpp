@@ -136,13 +136,13 @@ int writeTrack(const track& t, ostream& out, uint16_t tpq = 0, bool writeTempo =
 	}
 
 	stable_sort(saveEvents.begin(), saveEvents.end(), startCmp);
-	
+
 
 	uint32_t totalLen = 4;
 	out.write("MTrk", 4);
 	printUint32_t(0xdeadbeef, out); // print length placeholder
 	totalLen += 4;
-	
+
 	for (__typeof__(saveEvents.begin()) it = saveEvents.begin(),
 						prev = saveEvents.begin(); it != saveEvents.end(); it++) {
 		tick_t delta_tick = it->start - prev->start;

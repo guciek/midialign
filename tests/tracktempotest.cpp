@@ -35,7 +35,7 @@ int test1() {
 	if (T.nextTempoMarkAfter(4) != 0) { FAIL; return 1; }
 	if (T.nextTempoMarkAfter(5) != 0) { FAIL; return 1; }
 	if (T.nextTempoMarkAfter(6) != 0) { FAIL; return 1; }
-	
+
 	if (T.readTempoMark(0) != 2.0) { FAIL; return 1; }
 	if (T.readTempoMark(1) != 2.0) { FAIL; return 1; }
 	if (T.readTempoMark(2) != 2.0) { FAIL; return 1; }
@@ -68,11 +68,11 @@ int test3() {
 	T.addTempoMark(0, 2.0);
 	if (T.getTickTime(5) != 10.0) { FAIL; return 1; }
 	if (T.readTempoMark(0) != 2.0) { FAIL; return 1; }
-	
+
 	tracktempo T2 = T;
 	if (T2.getTickTime(5) != 10.0) { FAIL; return 1; }
 	if (T2.readTempoMark(0) != 2.0) { FAIL; return 1; }
-	
+
 	tracktempo T3(T);
 	if (T3.getTickTime(5) != 10.0) { FAIL; return 1; }
 	if (T3.readTempoMark(0) != 2.0) { FAIL; return 1; }

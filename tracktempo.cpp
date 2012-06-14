@@ -50,14 +50,14 @@ class ptracktempo {
 		}
 		// update time
 		if (tick-1 <= lastUpdatedTick) {
-			//~ time = 
+			//~ time =
 			lastUpdatedTick = tick;
 		}
 	#ifdef DEBUG
 		//~ for(it = tempoList.begin(); it!=tempoList.end(); it++){
 			//~ printf("%llu %lf\n", it->tick, it->tempo);
 		//~ } printf("\n");
-	#endif	
+	#endif
 	}
 
 	void delTempoMark(tick_t tick) {
@@ -98,7 +98,7 @@ class ptracktempo {
 	#endif
 		return total;
 	}
-	
+
 	tick_t nextTempoMarkAfter(tick_t tick) const {
 		__typeof__(tempoList.begin()) it = tempoList.begin();
 		while(it != tempoList.end() && it->tick <= tick) {
@@ -109,7 +109,7 @@ class ptracktempo {
 		}
 		else return 0;
 	}
-	
+
 	double readTempoMark(tick_t tick) const {
 		__typeof__(tempoList.end()) it = tempoList.end();
 		do {
