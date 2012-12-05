@@ -67,6 +67,21 @@ void option_bpm(midi & m, const char * param1) {
 	}
 }
 
+void option_track(midi & m, const char * param1) {
+	unsigned num = atoi(param1);
+	if (num < 1) throw "Invalid parameter for '-track'!";
+	if (num > m.trackCount())
+		throw "This MIDI file does not have that many tracks!";
+	#ifdef DEBUG
+		cerr << "# Removing all tracks except "
+			<< num << "..." << endl;
+	#endif
+	midi m2;
+	m2.setTicksPerQuaterNote(m.getTicksPerQuaterNote());
+	m2.addTrack(m.tracks(num-1));
+	m = m2;
+}
+
 bool run(char ** params) {
 	if ((!params[0]) || (!params[0][0]) || (params[0][0] == '-')) {
 		cerr << "\nUsage:\n" <<
@@ -74,6 +89,8 @@ bool run(char ** params) {
 			"\nOptions:\n" <<
 			"\t-constant                     find a matching tempo and align events\n" <<
 			"\t-bpm <bpm>[x<multiplier>]     align all events to this tempo\n" <<
+			"\t-shift-ticks <number>         shift all event times\n" <<
+			"\t-track <number>               remove all tracks but the one selected\n" <<
 			"\n";
 		return false;
 	}
@@ -97,6 +114,12 @@ bool run(char ** params) {
 				if (!params[0])
 					throw "Option '-shift-ticks' requires a parameter!";
 				option_shift_ticks(m, params[0]);
+				saved = false;
+			} else if (p == "-track") {
+				params++;
+				if (!params[0])
+					throw "Option '-track' requires a parameter!";
+				option_track(m, params[0]);
 				saved = false;
 			} else {
 				cerr << "Unknown option '" << p << "'!" << endl;

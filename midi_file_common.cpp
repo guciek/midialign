@@ -72,9 +72,9 @@ void pevent::getDescription(char * buffer, unsigned int length) const {
 	ss.setf(ios::showbase);
 	ss << getCommandStr(getCommand());
 	if (getCommand() == CMD_META_EVENT) {
-		ss << ", meta command: " << hex << (int) raw[1];
+		ss << " meta command " << hex << (int) raw[1];
 		if (getMetaCommand() == META_TEMPO_CHANGE) {
-			ss << ", META_TEMPO_CHANGE";
+			ss << " META_TEMPO_CHANGE";
 		}
 	}
 	ss.getline(buffer, length);
@@ -106,6 +106,6 @@ void pnote::getDescription(char * buffer, unsigned int length) const {
 	stringstream ss(stringstream::in | stringstream::out);
 	ss.setf(ios::showbase);
 	ss << getCommandStr(getCommand());
-	ss << ", pitch: " << hex << (int) raw[1];
+	ss << " pitch " << (int)raw[1] << " (" << hex << (int)raw[1] << ")";
 	ss.getline(buffer, length);
 }

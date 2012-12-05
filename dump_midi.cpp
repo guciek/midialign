@@ -12,12 +12,11 @@
 using namespace std;
 
 void dump_tracktempo_stdout(const tracktempo & tt) {
-	cout << "\ttempo:" << endl;
 	tick_t i = 0;
 	do {
 		double v = tt.readTempoMark(i);
-		cout << "\t\ttick " << i << ": " << v << "s/tick ("
-			<< (1/v) << " ticks/s)" << endl;
+		cout << "Tempo at tick " << i << ": " << v
+			<< "s/tick (" << (1/v) << " ticks/s)" << endl;
 		i = tt.nextTempoMarkAfter(i);
 	} while (i != 0);
 }
@@ -25,7 +24,6 @@ void dump_tracktempo_stdout(const tracktempo & tt) {
 void dump_track_stdout(const track & t, int tnum) {
 	cout << "Track " << tnum << endl;
 	dump_tracktempo_stdout(t.getTrackTempo());
-	cout << "\tevents:" << endl;
 	char buf[256];
 	for (unsigned int i = 0; i < t.eventCount(); i++) {
 		event const & e = t.events(i);
@@ -33,15 +31,15 @@ void dump_track_stdout(const track & t, int tnum) {
 		tick_t st = t.getEventTicks(i);
 		double sd = t.getEventSeconds(i);
 		if (e.isNote()) {
-			cout << "\t\tnote:  ticks [" << st << "-" <<
+			cout << "Note [" << st << "-" <<
 				(st+t.getNoteDurationTicks(i)) <<
-				"], time [" << sd << "s-" <<
+				"] [" << sd << "s-" <<
 				sd+t.getNoteDurationSeconds(i) <<
-				"s]\n\t\t       " << buf << endl;
+				"s]: " << buf << endl;
 		} else {
-			cout << "\t\tevent: tick [" << st <<
-				"], time [" << sd <<
-				"s]\n\t\t       " << buf << endl;
+			cout << "Event [" << st <<
+				"] [" << sd <<
+				"s]: " << buf << endl;
 		}
 	}
 }
