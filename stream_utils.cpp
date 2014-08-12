@@ -65,4 +65,3 @@ void printUint16_t(uint16_t val, ostream& out) {
 		out.put((char) ((val >> i) & 0x000000FF));
 	}
 }
-
